@@ -1,0 +1,17 @@
+certifi==2019.6.16
+chardet==3.0.4
+Click==7.0
+idna==2.8
+itsdangerous==1.1.0
+loguru==0.3.2
+MarkupSafe==1.1.1
+netifaces==0.10.6
+pyserial==3.4
+PySimpleGUI==4.4.1
+python-dotenv==0.10.3
+python-engineio==3.9.3
+python-socketio==4.3.1
+requests==2.22.0
+six==1.12.0
+soupsieve==1.9.4
+urllib3==1.25.3
