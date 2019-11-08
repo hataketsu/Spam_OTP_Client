@@ -14,6 +14,7 @@ from serial import SerialException
 import gsmmodem
 from gsmmodem import GsmModem
 from gsmmodem.exceptions import CommandError, TimeoutException
+from gsmmodem.modem import StatusReport
 
 CONFIG_INI = 'config.ini'
 
@@ -73,6 +74,7 @@ class SMSRunner(threading.Thread):
         self.port = port
         self.alive = True
         self.modem: GsmModem = gsmmodem.GsmModem(self.port, smsReceivedCallbackFunc=self.receive_sms,
+                                                 smsStatusReportCallback=self.on_sms_status,
                                                  cpinCallbackFunc=self.on_cpin)
         self.clear_data()
         self.sms_count = 0
@@ -136,6 +138,7 @@ class SMSRunner(threading.Thread):
         self.number = "Unknown"
         self.imsi = "Unknown"
         self.first_time = True
+        self.sms_ref_to_uid = {}
 
     def reset(self):
         self.set_status('Reseting...')
@@ -225,17 +228,26 @@ class SMSRunner(threading.Thread):
             if not self.first_time:
                 self.restart()
 
+    def on_sms_status(self, report: StatusReport):
+        print('==On status==')
+        print("Status", report.status)
+        print("Ref", report.reference)
+        print("deli", report.deliveryStatus)
+        uid = self.sms_ref_to_uid[report.reference]
+        sio.emit('update_otp', {'uid': uid, 'status': report.status}, namespace='/otp')
+
     def run_ussd(self, ussd: str):
         res = self.modem.sendUssd(ussd).message
         logger.info(
             f'Network: {self.modem.networkName}, IMSI: {self.imsi}, Phone: {self.number},  USSD: {ussd},\n Result: "{res}"')
         return res
 
-    def send_sms(self, number, content):
+    def send_sms(self, number, content, uid):
         with self.sms_lock:
             self.sms_count += 1
-            sms = self.modem.sendSms(number, content, True)
-        return str(sms.status)
+            sms = self.modem.sendSms(number, content)
+            self.sms_ref_to_uid[sms.reference] = uid
+            print("sent sms ref:", sms.reference)
 
 
 key_pat = re.compile(r"^(\D+)(\d+)$")
@@ -307,11 +319,8 @@ def send_sms(sms_otp):
             if best_runner is None or runner.sms_count < best_runner.sms_count:
                 best_runner = runner
         print(f'Select SIM {best_runner.modem.networkName}')
-        try:
-            result = best_runner.send_sms(number, content)
-            sio.emit('update_otp', {'uid': uid, 'status': result}, namespace='/otp')
-        except TimeoutException:
-            sio.emit('update_otp', {'uid': uid, 'status': 'timeout'}, namespace='/otp')
+        best_runner.send_sms(number, content, uid)
+        sio.emit('update_otp', {'uid': uid, 'status': 'wait for delivery'}, namespace='/otp')
 
 
 @sio.on('send_sms', namespace='/otp')
