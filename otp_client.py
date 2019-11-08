@@ -55,6 +55,7 @@ def update_table():
         if thread:
             try:
                 network = thread.modem.networkName
+                thread.network_name = network
             except:
                 network = 'Not connected'
             data.append(
@@ -93,7 +94,7 @@ class SMSRunner(threading.Thread):
     def get_online_runners():
         result = []
         for thread in threading.enumerate():
-            if isinstance(thread, SMSRunner) and thread.modem.networkName:
+            if isinstance(thread, SMSRunner) and thread.network_name:
                 result.append(thread)
         return result
 
@@ -135,6 +136,7 @@ class SMSRunner(threading.Thread):
         self.connect()
 
     def clear_data(self):
+        self.network_name = ""
         self.number = "Unknown"
         self.imsi = "Unknown"
         self.first_time = True
@@ -308,7 +310,7 @@ def send_sms(sms_otp):
     uid = sms_otp['uid']
     network = sms_otp['network']
     selected_runners = [runner for runner in SMSRunner.get_online_runners() if
-                        runner.modem.networkName.lower() == network]
+                        runner.network_name.lower() == network]
     if len(selected_runners) == 0:
         selected_runners = SMSRunner.get_online_runners()
     if len(selected_runners) == 0:
@@ -318,7 +320,7 @@ def send_sms(sms_otp):
         for runner in selected_runners:
             if best_runner is None or runner.sms_count < best_runner.sms_count:
                 best_runner = runner
-        print(f'Select SIM {best_runner.modem.networkName}')
+        print(f'Select SIM {best_runner.network_name}')
         best_runner.send_sms(number, content, uid)
         sio.emit('update_otp', {'uid': uid, 'status': 'wait for delivery'}, namespace='/otp')
 
@@ -341,7 +343,7 @@ while btn is not None:
         for index in values['thread_table']:
             selected_port = all_port[index]
             if SMSRunner.get_by_port(selected_port) is None:
-                threading.Thread(target=SMSRunner(selected_port).start).start()
+                SMSRunner(selected_port).start()
     elif btn == 'disconnect':
         for index in values['thread_table']:
             selected_port = all_port[index]
