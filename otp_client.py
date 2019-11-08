@@ -341,7 +341,7 @@ while btn is not None:
         for index in values['thread_table']:
             selected_port = all_port[index]
             if SMSRunner.get_by_port(selected_port) is None:
-                SMSRunner(selected_port).start()
+                threading.Thread(target=SMSRunner(selected_port).start).start()
     elif btn == 'disconnect':
         for index in values['thread_table']:
             selected_port = all_port[index]
