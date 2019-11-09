@@ -49,7 +49,7 @@ all_port = []
 
 def get_table_row(port):
     thread = SMSRunner.get_by_port(port)
-    if thread:
+    if thread and thread.status != 'Reseting' and thread.status != 'Connecting':
         try:
             if thread.modem.imsi:
                 network = thread.modem.networkName
@@ -147,13 +147,12 @@ class SMSRunner(threading.Thread):
         self.sms_ref_to_uid = {}
 
     def reset(self):
-        self.set_status('Reseting...')
+        self.set_status('Reseting')
         com = serial.Serial(self.port, 115200, timeout=3)
         com.write(b'AT\r\n')
         com.write(b'AT+CFUN=1,1\r\n')
         com.close()
         time.sleep(0.5)
-        self.set_status(f'Done reset.')
 
     def connect(self):
         self.reset()
