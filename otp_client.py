@@ -3,6 +3,7 @@ import threading
 import time
 import traceback
 from configparser import ConfigParser
+from multiprocessing.pool import ThreadPool
 from tkinter import TclError
 
 import PySimpleGUI as sg
@@ -46,24 +47,28 @@ sio = socketio.Client()
 all_port = []
 
 
-def update_table():
-    global all_port
-    data = []
-    colors = []
-    for port in all_port:
-        thread = SMSRunner.get_by_port(port)
-        if thread:
-            try:
+def get_table_row(port):
+    thread = SMSRunner.get_by_port(port)
+    if thread:
+        try:
+            if thread.modem.imsi:
                 network = thread.modem.networkName
                 thread.network_name = network
-            except:
+            else:
                 network = 'Not connected'
-            data.append(
-                [thread.port, thread.imsi, network, thread.sms_count,
-                 thread.status])
-        else:
-            data.append(
-                [port, "", "", "", "", "Not connected"])
+        except:
+            network = 'Not connected'
+        return [thread.port, thread.imsi, network, thread.sms_count,
+                thread.status]
+    else:
+        return [port, "", "", "", "", "Not connected"]
+
+
+def update_table():
+    global all_port
+    colors = []
+    data = ThreadPool(32).map(get_table_row, all_port)
+
     rows = table.SelectedRows
     table.Update(data, select_rows=rows, row_colors=colors)
 
@@ -137,7 +142,6 @@ class SMSRunner(threading.Thread):
 
     def clear_data(self):
         self.network_name = ""
-        self.number = "Unknown"
         self.imsi = "Unknown"
         self.first_time = True
         self.sms_ref_to_uid = {}
@@ -197,7 +201,6 @@ class SMSRunner(threading.Thread):
             pass
 
     def disconnect(self):
-        self.number = None
         self.alive = False
         try:
             self.modem.write('AT+CFUN=0')
@@ -208,7 +211,7 @@ class SMSRunner(threading.Thread):
 
     def receive_sms(self, sms):
         print(
-            f'== SMS message received ==\nFrom: {sms.number}\nTo: {self.number}\nTime: {sms.time}\nMessage:\n{sms.text}\n')
+            f'== SMS message received ==\nFrom: {sms.number}\nTime: {sms.time}\nMessage:\n{sms.text}\n')
         # data = {
         #     'imsi': self.imsi,
         #     'time': str(datetime.datetime.now()),
@@ -223,7 +226,6 @@ class SMSRunner(threading.Thread):
         print(line)
         if '+CPIN: NOT READY' in line:
             self.imsi = "Unknown"
-            self.number = "Unknown"
             self.set_status("No SIM detected")
         elif '+CPIN: READY' in line:
             self.imsi = "SIM inserted"
@@ -242,7 +244,7 @@ class SMSRunner(threading.Thread):
     def run_ussd(self, ussd: str):
         res = self.modem.sendUssd(ussd).message
         logger.info(
-            f'Network: {self.modem.networkName}, IMSI: {self.imsi}, Phone: {self.number},  USSD: {ussd},\n Result: "{res}"')
+            f'Network: {self.modem.networkName}, IMSI: {self.imsi}, USSD: {ussd},\n Result: "{res}"')
         return res
 
     def send_sms(self, number, content, uid):
@@ -311,7 +313,7 @@ def send_sms(sms_otp):
     uid = sms_otp['uid']
     network = sms_otp['network']
     selected_runners = [runner for runner in SMSRunner.get_online_runners() if
-                        runner.network_name.lower() == network]
+                        network in runner.network_name.lower()]
     if len(selected_runners) == 0:
         selected_runners = SMSRunner.get_online_runners()
     if len(selected_runners) == 0:
