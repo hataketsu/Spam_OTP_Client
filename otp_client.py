@@ -193,6 +193,7 @@ class SMSRunner(threading.Thread):
         # self.modem.write('AT+CNMI=3,1,0,2,0')
         # self.modem.write('AT+CPMS="SM","SM","SM"')
         self.set_status(f'Connected')
+        self.modem.smsTextMode = True
 
     def close_modem(self):
         try:
