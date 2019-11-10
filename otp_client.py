@@ -70,7 +70,6 @@ pool = ThreadPool(32)
 def update_table():
     global all_port
     data = pool.map(get_table_row, all_port)
-
     rows = table.SelectedRows
     table.Update(data, select_rows=rows)
 
@@ -318,7 +317,9 @@ def send_sms(sms_otp):
     if len(selected_runners) == 0:
         selected_runners = SMSRunner.get_online_runners()
     if len(selected_runners) == 0:
-        sio.emit('update_otp', {'uid': uid, 'status': 'No sim available'}, namespace='/otp')
+        data = {'uid': uid, 'status': 'no sim available'}
+        print(data)
+        sio.emit('update_otp', data, namespace='/otp')
     else:
         best_runner: SMSRunner = None
         for runner in selected_runners:
@@ -326,7 +327,9 @@ def send_sms(sms_otp):
                 best_runner = runner
         print(f'Select SIM {best_runner.network_name}')
         best_runner.send_sms(number, content, uid)
-        sio.emit('update_otp', {'uid': uid, 'status': 'wait for delivery'}, namespace='/otp')
+        data = {'uid': uid, 'status': 'sent'}
+        print(data)
+        sio.emit('update_otp', data, namespace='/otp')
 
 
 @sio.on('send_sms', namespace='/otp')
@@ -336,8 +339,12 @@ def _send_sms(sms_otp):
     send_sms(sms_otp)
 
 
-threading.Thread(target=sio.connect, args=(API_HOST,)).start()
+@sio.on('connect', namespace='/otp')
+def _connect():
+    print('connected')
 
+
+threading.Thread(target=sio.connect, args=(API_HOST,)).start()
 btn = 1
 while btn is not None:
     btn, values = window.Read(timeout=2000)
