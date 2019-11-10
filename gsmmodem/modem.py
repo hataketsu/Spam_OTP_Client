@@ -364,49 +364,48 @@ class GsmModem(SerialComms):
         if currentSmscNumber != None and self.smsc != currentSmscNumber:
             self.smsc = currentSmscNumber
 
-        # Set message storage, but first check what the modem supports - example response: +CPMS: (("SM","BM","SR"),("SM"))
-        # try:
-        #     cpmsLine = lineStartingWith('+CPMS', self.write('AT+CPMS=?'))
-        # except CommandError:
-        #     # Modem does not support AT+CPMS; SMS reading unavailable
-        #     self._smsReadSupported = False
-        #     self.log.warning('SMS preferred message storage query not supported by modem. SMS reading unavailable.')
-        # else:
-        #     cpmsSupport = cpmsLine.split(' ', 1)[1].split('),(')
-        #     # Do a sanity check on the memory types returned - Nokia S60 devices return empty strings, for example
-        #     for memItem in cpmsSupport:
-        #         if len(memItem) == 0:
-        #             # No support for reading stored SMS via AT commands - probably a Nokia S60
-        #             self._smsReadSupported = False
-        #             self.log.warning(
-        #                 'Invalid SMS message storage support returned by modem. SMS reading unavailable. Response was: "%s"',
-        #                 cpmsLine)
-        #             break
-        #     else:
-        #         # Suppported memory types look fine, continue
-        #         preferredMemoryTypes = ('"ME"', '"SM"', '"SR"')
-        #         cpmsItems = [''] * len(cpmsSupport)
-        #         for i in xrange(len(cpmsSupport)):
-        #             for memType in preferredMemoryTypes:
-        #                 if memType in cpmsSupport[i]:
-        #                     if i == 0:
-        #                         self._smsMemReadDelete = memType
-        #                     cpmsItems[i] = memType
-        #                     break
-        #         self.write('AT+CPMS={0}'.format(','.join(cpmsItems)))  # Set message storage
-        #     del cpmsSupport
-        #     del cpmsLine
-        #
-        # if self._smsReadSupported and (self.smsReceivedCallback or self.smsStatusReportCallback):
-        #     try:
-        #         self.write('AT+CNMI=' + self.AT_CNMI)  # Set message notifications
-        #     except CommandError:
-        #         try:
-        #             self.write('AT+CNMI=2,1,0,1,0')  # Set message notifications, using TE for delivery reports <ds>
-        #         except CommandError:
-        #             # Message notifications not supported
-        #             self._smsReadSupported = False
-        #             self.log.warning('Incoming SMS notifications not supported by modem. SMS receiving unavailable.')
+        try:
+            cpmsLine = lineStartingWith('+CPMS', self.write('AT+CPMS=?'))
+        except CommandError:
+            # Modem does not support AT+CPMS; SMS reading unavailable
+            self._smsReadSupported = False
+            self.log.warning('SMS preferred message storage query not supported by modem. SMS reading unavailable.')
+        else:
+            cpmsSupport = cpmsLine.split(' ', 1)[1].split('),(')
+            # Do a sanity check on the memory types returned - Nokia S60 devices return empty strings, for example
+            for memItem in cpmsSupport:
+                if len(memItem) == 0:
+                    # No support for reading stored SMS via AT commands - probably a Nokia S60
+                    self._smsReadSupported = False
+                    self.log.warning(
+                        'Invalid SMS message storage support returned by modem. SMS reading unavailable. Response was: "%s"',
+                        cpmsLine)
+                    break
+            else:
+                # Suppported memory types look fine, continue
+                preferredMemoryTypes = ('"ME"', '"SM"', '"SR"')
+                cpmsItems = [''] * len(cpmsSupport)
+                for i in xrange(len(cpmsSupport)):
+                    for memType in preferredMemoryTypes:
+                        if memType in cpmsSupport[i]:
+                            if i == 0:
+                                self._smsMemReadDelete = memType
+                            cpmsItems[i] = memType
+                            break
+                self.write('AT+CPMS={0}'.format(','.join(cpmsItems)))  # Set message storage
+            del cpmsSupport
+            del cpmsLine
+
+        if self._smsReadSupported and (self.smsReceivedCallback or self.smsStatusReportCallback):
+            try:
+                self.write('AT+CNMI=' + self.AT_CNMI)  # Set message notifications
+            except CommandError:
+                try:
+                    self.write('AT+CNMI=2,1,0,1,0')  # Set message notifications, using TE for delivery reports <ds>
+                except CommandError:
+                    # Message notifications not supported
+                    self._smsReadSupported = False
+                    self.log.warning('Incoming SMS notifications not supported by modem. SMS receiving unavailable.')
 
         # Incoming call notification setup
         try:
