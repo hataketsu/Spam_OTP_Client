@@ -53,8 +53,7 @@ def get_table_row(port):
             if thread.status == "Connected":
                 if thread.network_name == "" and thread.network_name is None:
                     thread.network_name = thread.modem.networkName
-                return [thread.port, thread.imsi, thread.network_name, thread.sms_count,
-                        thread.status]
+                network = thread.network_name
             else:
                 network = 'Not connected'
         except:
@@ -65,16 +64,18 @@ def get_table_row(port):
         return [port, "", "", "", "", "Not connected"]
 
 
+pool = ThreadPool(32)
+
+
 def update_table():
     start_time = time.time()
     print('start update table', start_time)
 
     global all_port
-    colors = []
-    data = ThreadPool(32).map(get_table_row, all_port)
+    data = pool.map(get_table_row, all_port)
 
     rows = table.SelectedRows
-    table.Update(data, select_rows=rows, row_colors=colors)
+    table.Update(data, select_rows=rows)
     print('update table run in ', time.time() - start_time)
 
 
