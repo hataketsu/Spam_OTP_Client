@@ -51,7 +51,7 @@ def get_table_row(port):
     if thread:
         try:
             if thread.status == "Connected":
-                if thread.network_name == "" and thread.network_name is None:
+                if thread.network_name == "" or thread.network_name is None:
                     thread.network_name = thread.modem.networkName
                 network = thread.network_name
             else:
