@@ -4,7 +4,6 @@ import time
 import traceback
 from configparser import ConfigParser
 from multiprocessing.pool import ThreadPool
-from tkinter import TclError
 
 import PySimpleGUI as sg
 import serial.tools.list_ports
@@ -52,7 +51,7 @@ def get_table_row(port):
     if thread:
         try:
             if thread.status == "Connected":
-                if thread.network_name == "":
+                if thread.network_name == "" and thread.network_name is None:
                     thread.network_name = thread.modem.networkName
                 return [thread.port, thread.imsi, thread.network_name, thread.sms_count,
                         thread.status]
