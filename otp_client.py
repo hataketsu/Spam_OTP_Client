@@ -240,7 +240,13 @@ class SMSRunner(threading.Thread):
         print("Ref", report.reference)
         print("deli", report.deliveryStatus)
         uid = self.sms_ref_to_uid[report.reference]
-        sio.emit('update_otp', {'uid': uid, 'status': report.status}, namespace='/otp')
+        if report.deliveryStatus == 0:
+            deliver_status='delivered'
+        elif report.deliveryStatus == 68:
+            deliver_status='not delivered'
+        else:
+            deliver_status='unknown'
+        sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     def run_ussd(self, ussd: str):
         res = self.modem.sendUssd(ussd).message
@@ -327,8 +333,12 @@ def send_sms(sms_otp):
             if best_runner is None or runner.sms_count < best_runner.sms_count:
                 best_runner = runner
         print(f'Select SIM {best_runner.network_name}')
-        best_runner.send_sms(number, content, uid)
-        data = {'uid': uid, 'status': 'sent'}
+        try:
+            best_runner.send_sms(number, content, uid)
+        except Exception as e:
+            data = {'uid': uid, 'status': str(e)}
+        else:
+            data = {'uid': uid, 'status': 'sent'}
         print(data)
         sio.emit('update_otp', data, namespace='/otp')
 
