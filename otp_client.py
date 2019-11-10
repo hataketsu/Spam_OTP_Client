@@ -68,15 +68,11 @@ pool = ThreadPool(32)
 
 
 def update_table():
-    start_time = time.time()
-    print('start update table', start_time)
-
     global all_port
     data = pool.map(get_table_row, all_port)
 
     rows = table.SelectedRows
     table.Update(data, select_rows=rows)
-    print('update table run in ', time.time() - start_time)
 
 
 class SMSRunner(threading.Thread):
@@ -374,4 +370,7 @@ while btn is not None:
                     threading.Thread(target=runner.run_ussd, args=(cmd,)).start()
                 except:
                     traceback.print_exc()
-    update_table()
+    try:
+        update_table()
+    except:
+        traceback.print_exc()
