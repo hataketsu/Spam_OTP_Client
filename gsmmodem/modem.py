@@ -10,8 +10,6 @@ import threading
 import time
 import weakref
 
-from loguru import logger
-
 from gsmmodem.exceptions import EncodingError
 # from . import compat # For Python 2.6 compatibility
 from gsmmodem.util import lineMatching
@@ -1470,6 +1468,7 @@ class GsmModem(SerialComms):
         # Switch to the correct memory type if required
         self._setSmsMemory(readDelete=memory)
         msgData = self.write('AT+CMGR={0}'.format(index))
+        print("msgData", msgData)
         # Parse meta information
         if self.smsTextMode:
             cmgrMatch = self.CMGR_SM_DELIVER_REGEX_TEXT.match(msgData[0])
@@ -1503,7 +1502,7 @@ class GsmModem(SerialComms):
                 # Some modems (ZTE) do not always read return status - default to RECEIVED UNREAD
                 stat = Sms.STATUS_RECEIVED_UNREAD
             pdu = msgData[1]
-            print(pdu)
+            print("pdu", pdu)
             smsDict = decodeSmsPdu(pdu)
             if smsDict['type'] == 'SMS-DELIVER':
                 return ReceivedSms(self, int(stat), smsDict['number'], smsDict['time'], smsDict['text'],
