@@ -190,8 +190,8 @@ class SMSRunner(threading.Thread):
             imsi = self.modem.imsi
             time.sleep(0.5)
         self.imsi = imsi
-        self.modem.write('AT+CNMI=3,1,0,2,0')
-        self.modem.write('AT+CPMS="SM","SM","SM"')
+        # self.modem.write('AT+CNMI=3,1,0,2,0')
+        # self.modem.write('AT+CPMS="SM","SM","SM"')
         self.set_status(f'Connected')
 
     def close_modem(self):
