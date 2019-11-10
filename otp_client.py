@@ -374,7 +374,4 @@ while btn is not None:
                     threading.Thread(target=runner.run_ussd, args=(cmd,)).start()
                 except:
                     traceback.print_exc()
-    try:
-        update_table()
-    except TclError:
-        pass
+    update_table()
