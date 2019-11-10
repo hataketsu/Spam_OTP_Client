@@ -49,11 +49,13 @@ all_port = []
 
 def get_table_row(port):
     thread = SMSRunner.get_by_port(port)
-    if thread and thread.status != 'Reseting' and thread.status != 'Connecting':
+    if thread:
         try:
-            if thread.modem.imsi:
-                network = thread.modem.networkName
-                thread.network_name = network
+            if thread.status == "Connected":
+                if thread.network_name == "":
+                    thread.network_name = thread.modem.networkName
+                return [thread.port, thread.imsi, thread.network_name, thread.sms_count,
+                        thread.status]
             else:
                 network = 'Not connected'
         except:
@@ -65,12 +67,16 @@ def get_table_row(port):
 
 
 def update_table():
+    start_time = time.time()
+    print('start update table', start_time)
+
     global all_port
     colors = []
     data = ThreadPool(32).map(get_table_row, all_port)
 
     rows = table.SelectedRows
     table.Update(data, select_rows=rows, row_colors=colors)
+    print('update table run in ', time.time() - start_time)
 
 
 class SMSRunner(threading.Thread):
