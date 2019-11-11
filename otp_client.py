@@ -242,11 +242,11 @@ class SMSRunner(threading.Thread):
         print("deli", report.deliveryStatus)
         uid = self.sms_ref_to_uid[report.reference]
         if report.deliveryStatus == 0:
-            deliver_status='delivered'
+            deliver_status = 'delivered'
         elif report.deliveryStatus == 68:
-            deliver_status='not delivered'
+            deliver_status = 'not delivered'
         else:
-            deliver_status='unknown'
+            deliver_status = 'unknown'
         sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     def run_ussd(self, ussd: str):
