@@ -1,3 +1,4 @@
+import random
 import re
 import threading
 import time
@@ -328,6 +329,7 @@ def send_sms(sms_otp):
         print(data)
         sio.emit('update_otp', data, namespace='/otp')
     else:
+        random.shuffle(selected_runners)
         best_runner: SMSRunner = None
         for runner in selected_runners:
             if best_runner is None or runner.sms_count < best_runner.sms_count:
