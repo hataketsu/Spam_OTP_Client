@@ -1,3 +1,4 @@
+import random
 import re
 import threading
 import time
@@ -241,11 +242,11 @@ class SMSRunner(threading.Thread):
         print("deli", report.deliveryStatus)
         uid = self.sms_ref_to_uid[report.reference]
         if report.deliveryStatus == 0:
-            deliver_status='delivered'
+            deliver_status = 'delivered'
         elif report.deliveryStatus == 68:
-            deliver_status='not delivered'
+            deliver_status = 'not delivered'
         else:
-            deliver_status='unknown'
+            deliver_status = 'unknown'
         sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     def run_ussd(self, ussd: str):
@@ -328,6 +329,7 @@ def send_sms(sms_otp):
         print(data)
         sio.emit('update_otp', data, namespace='/otp')
     else:
+        random.shuffle(selected_runners)
         best_runner: SMSRunner = None
         for runner in selected_runners:
             if best_runner is None or runner.sms_count < best_runner.sms_count:
