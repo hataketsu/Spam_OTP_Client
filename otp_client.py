@@ -22,6 +22,7 @@ CONFIG_INI = 'config.ini'
 config = ConfigParser()
 config.read(CONFIG_INI)
 API_HOST = config['default']['api_host']
+EXCLUDE_PORTS = config['default']['exclude_ports'].split()
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
@@ -36,6 +37,7 @@ window.Layout([[
         [sg.Button("Refresh ports", key='refresh')],
         [sg.T("")],
         [sg.Button('Connect', key='connect', button_color=('white', 'green'))],
+        [sg.Button('Connect all', key='connect_all', button_color=('white', 'green'))],
         [sg.Button("Disconnect", key='disconnect', button_color=('white', 'red'))],
         [sg.Button("Restart", key='restart')],
         [sg.Button("Run USSD", key='ussd')]
@@ -246,7 +248,7 @@ class SMSRunner(threading.Thread):
         elif report.deliveryStatus == 68:
             deliver_status = 'not delivered'
         else:
-            deliver_status = 'unknown'
+            deliver_status = f'unknown {report.deliveryStatus}'
         sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     def run_ussd(self, ussd: str):
@@ -273,7 +275,7 @@ def key(item):
 
 def update_all_port():
     global all_port
-    all_port = [port.device for port in serial.tools.list_ports.comports()]
+    all_port = [port.device for port in serial.tools.list_ports.comports() if port.device not in EXCLUDE_PORTS]
     all_port.sort(key=key)
     runners = SMSRunner.get_all_runners()
     for runner in runners:
@@ -330,7 +332,7 @@ def send_sms(sms_otp):
         sio.emit('update_otp', data, namespace='/otp')
     else:
         random.shuffle(selected_runners)
-        best_runner: SMSRunner = None
+        best_runner = None
         for runner in selected_runners:
             if best_runner is None or runner.sms_count < best_runner.sms_count:
                 best_runner = runner
@@ -368,6 +370,10 @@ while btn is not None:
             selected_port = all_port[index]
             if SMSRunner.get_by_port(selected_port) is None:
                 SMSRunner(selected_port).start()
+    elif btn == 'connect_all':
+        for port in all_port:
+            if SMSRunner.get_by_port(port) is None:
+                SMSRunner(port).start()
     elif btn == 'disconnect':
         for index in values['thread_table']:
             selected_port = all_port[index]
