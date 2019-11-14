@@ -96,7 +96,7 @@ def update_table():
 class SMSRunner(threading.Thread):
     def __init__(self, port):
         super().__init__()
-        logger.info(f"Start new thread {port}")
+        logger.debug(f"Start new thread {port}")
         self.port = port
         self.alive = True
         self.modem: GsmModem = gsmmodem.GsmModem(self.port, smsReceivedCallbackFunc=self.receive_sms,
@@ -328,6 +328,7 @@ def send_sms(sms_otp):
             best_runner.send_sms(number, content, uid)
         except Exception as e:
             logger.exception("Send message error")
+            logger.error("nssss")
             data = {'uid': uid, 'status': str(e)}
         else:
             data = {'uid': uid, 'status': 'sent'}
