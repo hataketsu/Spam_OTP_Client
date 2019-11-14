@@ -9,7 +9,7 @@ jsonschema==3.1.1
 loguru==0.3.2
 MarkupSafe==1.1.1
 more-itertools==7.2.0
-netifaces==0.10.6
+#netifaces==0.10.6
 notifiers==1.2.1
 pyrsistent==0.15.5
 pyserial==3.4
