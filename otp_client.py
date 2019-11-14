@@ -327,8 +327,7 @@ def send_sms(sms_otp):
         try:
             best_runner.send_sms(number, content, uid)
         except Exception as e:
-            logger.exception("Send message error")
-            logger.error("nssss")
+            logger.opt(exception=True).error("Send message error")
             data = {'uid': uid, 'status': str(e)}
         else:
             data = {'uid': uid, 'status': 'sent'}
