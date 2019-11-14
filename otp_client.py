@@ -65,7 +65,6 @@ sio = socketio.Client()
 all_port = []
 
 
-
 def get_table_row(port):
     thread = SMSRunner.get_by_port(port)
     if thread:
@@ -75,7 +74,7 @@ def get_table_row(port):
                 if thread.network_name == "" or thread.network_name is None:
                     thread.network_name = thread.modem.networkName
                 network = thread.network_name
-                signal = thread.modem.signalStrength
+                signal = thread.get_signal()
             else:
                 network = 'Not connected'
         except:
@@ -84,7 +83,7 @@ def get_table_row(port):
         return [thread.port, thread.imsi, network, thread.sms_count, signal,
                 thread.status]
     else:
-        return [port, "", "", "", "", "Off", "Not connected"]
+        return [port, "", "", "", "Off", "Not connected"]
 
 
 pool = ThreadPool(32)
@@ -107,6 +106,8 @@ class SMSRunner(threading.Thread):
                                                  smsStatusReportCallback=self.on_sms_status,
                                                  cpinCallbackFunc=self.on_cpin)
         self.clear_data()
+        self.last_check_signal = 0
+        self.signal = 'Off'
         self.sms_count = 0
         self.sms_lock = threading.Lock()
         self.set_status('Initializing...')
@@ -281,6 +282,21 @@ class SMSRunner(threading.Thread):
             sms = self.modem.sendSms(number, content)
             self.sms_ref_to_uid[sms.reference] = uid
             logger.debug(f"Sent sms ref: {sms.reference}, UID: {uid}")
+
+    def get_signal(self):
+        if time.time() - self.last_check_signal > 10000:
+            self.last_check_signal = time.time()
+            self.signal = self.modem.signalStrength
+            tail = "Off"
+            if 2 <= self.signal < 10:
+                tail = "Marginal"
+            elif 10 <= self.signal < 14:
+                tail = "OK"
+            elif 15 <= self.signal < 20:
+                tail = "Good"
+            elif 20 <= self.signal:
+                tail = "Excellent"
+        return f"{self.signal}: {tail}"
 
 
 key_pat = re.compile(r"^(\D+)(\d+)$")
