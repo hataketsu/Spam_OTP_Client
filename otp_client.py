@@ -21,7 +21,7 @@ from gsmmodem import GsmModem
 from gsmmodem.exceptions import CommandError, TimeoutException, CmsError
 from gsmmodem.modem import StatusReport
 
-MAX_RETRY = 3
+MAX_RETRY = 4
 
 logger.add("logs/log.log", rotation="00:00")
 
@@ -346,6 +346,7 @@ def send_sms(sms_otp):
         count = MAX_RETRY
         done = False
         while count > 0:
+            count -= 1
             random.shuffle(selected_runners)
             best_runner = None
             for runner in selected_runners:
