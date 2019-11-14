@@ -287,15 +287,15 @@ class SMSRunner(threading.Thread):
         if time.time() - self.last_check_signal > 10000:
             self.last_check_signal = time.time()
             self.signal = self.modem.signalStrength
-            tail = "Off"
-            if 2 <= self.signal < 10:
-                tail = "Marginal"
-            elif 10 <= self.signal < 14:
-                tail = "OK"
-            elif 15 <= self.signal < 20:
-                tail = "Good"
-            elif 20 <= self.signal:
-                tail = "Excellent"
+        tail = "Off"
+        if 2 <= self.signal < 10:
+            tail = "Marginal"
+        elif 10 <= self.signal < 14:
+            tail = "OK"
+        elif 15 <= self.signal < 20:
+            tail = "Good"
+        elif 20 <= self.signal:
+            tail = "Excellent"
         return f"{self.signal}: {tail}"
 
 
