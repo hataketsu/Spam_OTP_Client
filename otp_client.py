@@ -18,8 +18,10 @@ from serial import SerialException
 
 import gsmmodem
 from gsmmodem import GsmModem
-from gsmmodem.exceptions import CommandError, TimeoutException
+from gsmmodem.exceptions import CommandError, TimeoutException, CmsError
 from gsmmodem.modem import StatusReport
+
+MAX_RETRY = 3
 
 logger.add("logs/log.log", rotation="00:00")
 
@@ -341,21 +343,29 @@ def send_sms(sms_otp):
         logger.error("No sim available")
         sio.emit('update_otp', data, namespace='/otp')
     else:
-        random.shuffle(selected_runners)
-        best_runner = None
-        for runner in selected_runners:
-            if best_runner is None or runner.sms_count < best_runner.sms_count:
-                best_runner = runner
-        logger.info(f'Select SIM {best_runner.network_name}')
-        try:
-            best_runner.send_sms(number, content, uid)
-        except:
-            logger.exception("Send message error")
-            data = {'uid': uid, 'status': ''}
-        else:
-            data = {'uid': uid, 'status': 'sent'}
-        logger.info(data)
-        sio.emit('update_otp', data, namespace='/otp')
+        count = MAX_RETRY
+        done = False
+        while count > 0:
+            random.shuffle(selected_runners)
+            best_runner = None
+            for runner in selected_runners:
+                if best_runner is None or runner.sms_count < best_runner.sms_count:
+                    best_runner = runner
+            logger.info(f'Select SIM {best_runner.network_name}')
+            try:
+                best_runner.send_sms(number, content, uid)
+            except CmsError as e:
+                logger.error(f"Send message error code {e.code}")
+                data = {'uid': uid, 'status': f"SMS error code {e.code}"}
+            except Exception as e:
+                data = {'uid': uid, 'status': f"SMS error code {str(e)}"}
+            else:
+                data = {'uid': uid, 'status': 'sent'}
+                done = True
+            logger.info(data)
+            sio.emit('update_otp', data, namespace='/otp')
+            if done:
+                break
 
 
 @sio.on('send_sms', namespace='/otp')
