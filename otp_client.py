@@ -42,7 +42,7 @@ EXCLUDE_PORTS = config['default']['exclude_ports'].split()
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
-table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 24),
+table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 40),
                  max_col_width=100,
                  headings=['Port', 'IMSI', 'Network', 'SMS count', 'Signal', 'Status'],
                  justification='right', key='thread_table')
@@ -290,7 +290,7 @@ class SMSRunner(threading.Thread):
         tail = "Off"
         if 2 <= self.signal < 10:
             tail = "Marginal"
-        elif 10 <= self.signal < 14:
+        elif 10 <= self.signal < 15:
             tail = "OK"
         elif 15 <= self.signal < 20:
             tail = "Good"
