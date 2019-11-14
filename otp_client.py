@@ -1,8 +1,11 @@
+import logging
 import random
 import re
+import sys
 import threading
 import time
 import traceback
+from _tkinter import TclError
 from configparser import ConfigParser
 from multiprocessing.pool import ThreadPool
 
@@ -10,12 +13,25 @@ import PySimpleGUI as sg
 import serial.tools.list_ports
 import socketio
 from loguru import logger
+from notifiers.logging import NotificationHandler
 from serial import SerialException
 
 import gsmmodem
 from gsmmodem import GsmModem
 from gsmmodem.exceptions import CommandError, TimeoutException
 from gsmmodem.modem import StatusReport
+
+logger.add("logs/log.log", rotation="00:00")
+
+telegram = NotificationHandler('telegram', defaults={'token': '924105859:AAFeLydM8FfpR0iB0r8Wo61ceeU4tCVi7FI',
+                                                     'chat_id': 821172047})
+logger.add(telegram, level=logging.ERROR)
+
+logger.remove(0)
+logger.add(sys.stdout, level=logging.INFO)
+
+logger.info("Start")
+logger.info("Read config file")
 
 CONFIG_INI = 'config.ini'
 
@@ -26,7 +42,7 @@ EXCLUDE_PORTS = config['default']['exclude_ports'].split()
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
-table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 48]], size=(200, 24),
+table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 36]], size=(200, 24),
                  max_col_width=100,
                  headings=['Port', 'IMSI', 'Network', 'SMS count', 'Status'],
                  justification='right', key='thread_table')
@@ -79,8 +95,8 @@ def update_table():
 
 class SMSRunner(threading.Thread):
     def __init__(self, port):
-        global count
         super().__init__()
+        logger.info(f"Start new thread {port}")
         self.port = port
         self.alive = True
         self.modem: GsmModem = gsmmodem.GsmModem(self.port, smsReceivedCallbackFunc=self.receive_sms,
@@ -123,6 +139,7 @@ class SMSRunner(threading.Thread):
 
     def set_status(self, status):
         self.status = status
+        logger.debug(f"{self.port} change status to {status}")
 
     def run(self):
         self.connect()
@@ -210,24 +227,15 @@ class SMSRunner(threading.Thread):
             self.modem.write('AT+CFUN=0')
             self.modem.close()
         except:
-            print('cannot close')
+            logger.warning(f'Cannot close {self.port}')
         logger.info(f'Kill {self.name} {self.port}')
 
     def receive_sms(self, sms):
-        print(
+        logger.debug(
             f'== SMS message received ==\nFrom: {sms.number}\nTime: {sms.time}\nMessage:\n{sms.text}\n')
-        # data = {
-        #     'imsi': self.imsi,
-        #     'time': str(datetime.datetime.now()),
-        #     'text': sms.text,
-        #     'network': self.modem.networkName,
-        #     'number': sms.number
-        # }
-        # r = requests.post(API_HOST, data=json.dumps(data))
-        # print(r.text)
 
     def on_cpin(self, line):
-        print(line)
+        logger.info(line)
         if '+CPIN: NOT READY' in line:
             self.imsi = "Unknown"
             self.set_status("No SIM detected")
@@ -238,23 +246,27 @@ class SMSRunner(threading.Thread):
                 self.restart()
 
     def on_sms_status(self, report: StatusReport):
-        print('==On status==')
-        print("Status", report.status)
-        print("Ref", report.reference)
-        print("deli", report.deliveryStatus)
+        logger.debug(f'''
+        ==On status==
+        Status: {report.status}, Ref:  {report.reference}, Delivery: {report.deliveryStatus}''')
         uid = self.sms_ref_to_uid[report.reference]
         if report.deliveryStatus == 0:
             deliver_status = 'delivered'
         elif report.deliveryStatus == 68:
             deliver_status = 'not delivered'
+            logger.error({'uid': uid, 'status': 'not delivered'})
         else:
             deliver_status = f'unknown {report.deliveryStatus}'
+            logger.error({'uid': uid, 'status': f'delivery status: {deliver_status}'})
         sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     def run_ussd(self, ussd: str):
         res = self.modem.sendUssd(ussd).message
         logger.info(
-            f'Network: {self.modem.networkName}, IMSI: {self.imsi}, USSD: {ussd},\n Result: "{res}"')
+            f''''Network: {self.modem.networkName}
+            IMSI: {self.imsi}
+            USSD: {ussd}
+            Result: "{res}"''')
         return res
 
     def send_sms(self, number, content, uid):
@@ -262,7 +274,7 @@ class SMSRunner(threading.Thread):
             self.sms_count += 1
             sms = self.modem.sendSms(number, content)
             self.sms_ref_to_uid[sms.reference] = uid
-            print("sent sms ref:", sms.reference)
+            logger.debug(f"Sent sms ref: {sms.reference}, UID: {uid}")
 
 
 key_pat = re.compile(r"^(\D+)(\d+)$")
@@ -291,32 +303,7 @@ prev_data = []
 time_out = time.time()
 
 
-@sio.on('connect', namespace='/otp')
-def _connect():
-    print('on connect')
-    print(sio.sid)
-
-
-def get_network(number: str):
-    PHONES = dict(
-        vinaphone=['088', '088', '091', '091', '094', '094', '0123', '083', '0124', '084', '0125', '085', '0127', '081',
-                   '0129', '082'],
-        viettel=['086', '086', '096', '096', '097', '097', '098', '098', '0162', '032', '0163', '033', '0164', '034',
-                 '0165', '035', '0166', '036', '0167', '037', '0168', '038', '0169', '039'],
-        mobifone=['089', '089', '090', '090', '093', '093', '0120', '070', '0121', '079', '0122', '077', '0126', '076',
-                  '0128', '078'],
-        vietnamobile=['092', '092', '056', '056', '058', '058']
-    )
-    if number.startswith('84'):
-        number = '0' + number[2:]
-    for k in PHONES.keys():
-        starts = PHONES[k]
-        for start in starts:
-            if number.startswith(start):
-                return k
-    return ''
-
-
+@logger.catch
 def send_sms(sms_otp):
     number = sms_otp['number']
     content = sms_otp['content']
@@ -328,7 +315,7 @@ def send_sms(sms_otp):
         selected_runners = SMSRunner.get_online_runners()
     if len(selected_runners) == 0:
         data = {'uid': uid, 'status': 'no sim available'}
-        print(data)
+        logger.error("No sim available")
         sio.emit('update_otp', data, namespace='/otp')
     else:
         random.shuffle(selected_runners)
@@ -336,33 +323,32 @@ def send_sms(sms_otp):
         for runner in selected_runners:
             if best_runner is None or runner.sms_count < best_runner.sms_count:
                 best_runner = runner
-        print(f'Select SIM {best_runner.network_name}')
+        logger.info(f'Select SIM {best_runner.network_name}')
         try:
             best_runner.send_sms(number, content, uid)
         except Exception as e:
             data = {'uid': uid, 'status': str(e)}
         else:
             data = {'uid': uid, 'status': 'sent'}
-        print(data)
+        logger.info(data)
         sio.emit('update_otp', data, namespace='/otp')
 
 
 @sio.on('send_sms', namespace='/otp')
 def _send_sms(sms_otp):
-    print('new sms')
-    print(sms_otp)
+    logger.info(f"New SMS {sms_otp}")
     send_sms(sms_otp)
 
 
 @sio.on('connect', namespace='/otp')
 def _connect():
-    print('connected')
+    logger.info(f'Connected to {API_HOST} with ID {sio.sid}')
 
 
 threading.Thread(target=sio.connect, args=(API_HOST,)).start()
 btn = 1
+values = {}
 while btn is not None:
-    btn, values = window.Read(timeout=2000)
     if btn == 'refresh':
         update_all_port()
     elif btn == 'connect':
@@ -396,7 +382,13 @@ while btn is not None:
                     threading.Thread(target=runner.run_ussd, args=(cmd,)).start()
                 except:
                     traceback.print_exc()
+    btn, values = window.Read(timeout=2000)
+    if btn is None:
+        break
+
     try:
         update_table()
+    except TclError as e:
+        pass
     except:
-        traceback.print_exc()
+        logger.opt(exception=True).error("Table error")

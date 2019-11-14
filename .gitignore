@@ -1,4 +1,4 @@
 venv/
 config.ini
-logs/log*
+logs/*.log
 tests/*
