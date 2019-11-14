@@ -351,14 +351,19 @@ def send_sms(sms_otp):
             for runner in selected_runners:
                 if best_runner is None or runner.sms_count < best_runner.sms_count:
                     best_runner = runner
-            logger.info(f'Select SIM {best_runner.network_name}')
+            logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
             try:
                 best_runner.send_sms(number, content, uid)
             except CmsError as e:
                 logger.error(f"Send message error code {e.code}")
-                data = {'uid': uid, 'status': f"SMS error code {e.code}"}
+                message = f"SMS error code {e.code}."
+                if e.code == 38:
+                    done = True
+                    message += 'No such phone number'
+                data = {'uid': uid, 'status': message}
             except Exception as e:
-                data = {'uid': uid, 'status': f"SMS error code {str(e)}"}
+                logger.error(f"Other error code {str(e)}")
+                data = {'uid': uid, 'status': f"Error: {str(e)}"}
             else:
                 data = {'uid': uid, 'status': 'sent'}
                 done = True
