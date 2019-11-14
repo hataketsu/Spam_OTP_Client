@@ -4,7 +4,6 @@ import re
 import sys
 import threading
 import time
-import traceback
 from _tkinter import TclError
 from configparser import ConfigParser
 from multiprocessing.pool import ThreadPool
@@ -269,13 +268,15 @@ class SMSRunner(threading.Thread):
                 {'uid': uid, 'status': f'delivery status: {deliver_status}', 'signal': self.modem.signalStrength})
         sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
+    @logger.catch
     def run_ussd(self, ussd: str):
         res = self.modem.sendUssd(ussd).message
         logger.info(
             f''''Network: {self.modem.networkName}
-            IMSI: {self.imsi}  USSD: {ussd}  Signal: {self.modem.signalStrength}
-            Result:
-             "{res}"''')
+        IMSI: {self.imsi}  USSD: {ussd}  Signal: {self.modem.signalStrength}
+        Result:
+         "{res}"''')
+
         return res
 
     def send_sms(self, number, content, uid):
@@ -419,10 +420,7 @@ while btn is not None:
             selected_port = all_port[index]
             runner = SMSRunner.get_by_port(selected_port)
             if runner:
-                try:
-                    threading.Thread(target=runner.run_ussd, args=(cmd,)).start()
-                except:
-                    traceback.print_exc()
+                threading.Thread(target=runner.run_ussd, args=(cmd,)).start()
     btn, values = window.Read(timeout=2000)
     if btn is None:
         break
