@@ -296,7 +296,7 @@ class SMSRunner(threading.Thread):
             tail = "Good"
         elif 20 <= self.signal:
             tail = "Excellent"
-        return f"{self.signal}: {tail}"
+        return f"{tail}:{self.signal}"
 
 
 key_pat = re.compile(r"^(\D+)(\d+)$")
