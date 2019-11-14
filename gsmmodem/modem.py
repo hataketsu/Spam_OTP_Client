@@ -1468,7 +1468,6 @@ class GsmModem(SerialComms):
         # Switch to the correct memory type if required
         self._setSmsMemory(readDelete=memory)
         msgData = self.write('AT+CMGR={0}'.format(index))
-        print("msgData", msgData)
         # Parse meta information
         if self.smsTextMode:
             cmgrMatch = self.CMGR_SM_DELIVER_REGEX_TEXT.match(msgData[0])
