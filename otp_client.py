@@ -42,7 +42,7 @@ EXCLUDE_PORTS = config['default']['exclude_ports'].split()
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
-table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 40),
+table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 33),
                  max_col_width=100,
                  headings=['Port', 'IMSI', 'Network', 'SMS count', 'Signal', 'Status'],
                  justification='right', key='thread_table')
@@ -73,6 +73,7 @@ def get_table_row(port):
             if thread.status == "Connected":
                 if thread.network_name == "" or thread.network_name is None:
                     thread.network_name = thread.modem.networkName
+                    signal = thread.get_signal(force=True)
                 network = thread.network_name
                 signal = thread.get_signal()
             else:
@@ -283,8 +284,8 @@ class SMSRunner(threading.Thread):
             self.sms_ref_to_uid[sms.reference] = uid
             logger.debug(f"Sent sms ref: {sms.reference}, UID: {uid}")
 
-    def get_signal(self):
-        if time.time() - self.last_check_signal > 10000:
+    def get_signal(self, force=False):
+        if force or time.time() - self.last_check_signal > 10000:
             self.last_check_signal = time.time()
             self.signal = self.modem.signalStrength
         tail = "Off"
