@@ -327,7 +327,6 @@ prev_data = []
 time_out = time.time()
 
 
-@logger.catch
 def send_sms(sms_otp):
     number = sms_otp['number']
     content = sms_otp['content']
@@ -348,7 +347,6 @@ def send_sms(sms_otp):
             if best_runner is None or runner.sms_count < best_runner.sms_count:
                 best_runner = runner
         logger.info(f'Select SIM {best_runner.network_name}')
-        logger.error("ahihi")
         try:
             best_runner.send_sms(number, content, uid)
         except Exception as e:
