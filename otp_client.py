@@ -349,10 +349,9 @@ def send_sms(sms_otp):
         logger.info(f'Select SIM {best_runner.network_name}')
         try:
             best_runner.send_sms(number, content, uid)
-        except Exception as e:
-            logger.error('fuckc')
-            logger.opt(exception=True).error("Send message error")
-            data = {'uid': uid, 'status': str(e)}
+        except:
+            logger.exception("Send message error")
+            data = {'uid': uid, 'status': ''}
         else:
             data = {'uid': uid, 'status': 'sent'}
         logger.info(data)
