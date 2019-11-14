@@ -288,6 +288,7 @@ class SMSRunner(threading.Thread):
         if force or time.time() - self.last_check_signal > 10000:
             self.last_check_signal = time.time()
             self.signal = self.modem.signalStrength
+            self.network_name = self.modem.networkName
         tail = "Off"
         if 2 <= self.signal < 10:
             tail = "Marginal"
@@ -347,6 +348,7 @@ def send_sms(sms_otp):
             if best_runner is None or runner.sms_count < best_runner.sms_count:
                 best_runner = runner
         logger.info(f'Select SIM {best_runner.network_name}')
+        logger.error("ahihi")
         try:
             best_runner.send_sms(number, content, uid)
         except Exception as e:
