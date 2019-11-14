@@ -42,9 +42,9 @@ EXCLUDE_PORTS = config['default']['exclude_ports'].split()
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
-table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 36]], size=(200, 24),
+table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 24),
                  max_col_width=100,
-                 headings=['Port', 'IMSI', 'Network', 'SMS count', 'Status'],
+                 headings=['Port', 'IMSI', 'Network', 'SMS count', 'Signal', 'Status'],
                  justification='right', key='thread_table')
 window.Layout([[
     sg.Column([
@@ -65,22 +65,26 @@ sio = socketio.Client()
 all_port = []
 
 
+
 def get_table_row(port):
     thread = SMSRunner.get_by_port(port)
     if thread:
+        signal = 'Off'
         try:
             if thread.status == "Connected":
                 if thread.network_name == "" or thread.network_name is None:
                     thread.network_name = thread.modem.networkName
                 network = thread.network_name
+                signal = thread.modem.signalStrength
             else:
                 network = 'Not connected'
         except:
             network = 'Not connected'
-        return [thread.port, thread.imsi, network, thread.sms_count,
+
+        return [thread.port, thread.imsi, network, thread.sms_count, signal,
                 thread.status]
     else:
-        return [port, "", "", "", "", "Not connected"]
+        return [port, "", "", "", "", "Off", "Not connected"]
 
 
 pool = ThreadPool(32)
@@ -254,10 +258,11 @@ class SMSRunner(threading.Thread):
             deliver_status = 'delivered'
         elif report.deliveryStatus == 68:
             deliver_status = 'not delivered'
-            logger.error({'uid': uid, 'status': 'not delivered'})
+            logger.error({'uid': uid, 'status': 'not delivered', 'signal': self.modem.signalStrength})
         else:
             deliver_status = f'unknown {report.deliveryStatus}'
-            logger.error({'uid': uid, 'status': f'delivery status: {deliver_status}'})
+            logger.error(
+                {'uid': uid, 'status': f'delivery status: {deliver_status}', 'signal': self.modem.signalStrength})
         sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     def run_ussd(self, ussd: str):
@@ -266,6 +271,7 @@ class SMSRunner(threading.Thread):
             f''''Network: {self.modem.networkName}
             IMSI: {self.imsi}
             USSD: {ussd}
+            Signal: {self.modem.signalStrength}
             Result: "{res}"''')
         return res
 
