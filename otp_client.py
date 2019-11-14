@@ -368,20 +368,7 @@ def _connect():
     logger.info(f'Connected to {API_HOST} with ID {sio.sid}')
 
 
-def update_table_thread():
-    while True:
-        try:
-            update_table()
-        except TclError as e:
-            pass
-        except:
-            logger.opt(exception=True).error("Table error")
-
-        time.sleep(2)
-
-
 threading.Thread(target=sio.connect, args=(API_HOST,)).start()
-threading.Thread(target=update_table_thread).start()
 btn = 1
 values = {}
 while btn is not None:
@@ -421,3 +408,9 @@ while btn is not None:
     btn, values = window.Read(timeout=2000)
     if btn is None:
         break
+    try:
+        update_table()
+    except TclError as e:
+        pass
+    except:
+        logger.opt(exception=True).error("Table error")
