@@ -25,10 +25,6 @@ MAX_RETRY = 4
 
 logger.add("logs/log.log", rotation="00:00")
 
-telegram = NotificationHandler('telegram', defaults={'token': '924105859:AAFeLydM8FfpR0iB0r8Wo61ceeU4tCVi7FI',
-                                                     'chat_id': 821172047})
-logger.add(telegram, level=logging.ERROR)
-
 logger.remove(0)
 logger.add(sys.stdout, level=logging.INFO)
 
@@ -41,6 +37,10 @@ config = ConfigParser()
 config.read(CONFIG_INI)
 API_HOST = config['default']['api_host']
 EXCLUDE_PORTS = config['default']['exclude_ports'].split()
+
+telegram = NotificationHandler('telegram', defaults={'token': config['default']['telegram_api'],
+                                                     'chat_id': config['default']['telegram_id']})
+logger.add(telegram, level=logging.ERROR)
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
@@ -273,10 +273,9 @@ class SMSRunner(threading.Thread):
         res = self.modem.sendUssd(ussd).message
         logger.info(
             f''''Network: {self.modem.networkName}
-            IMSI: {self.imsi}
-            USSD: {ussd}
-            Signal: {self.modem.signalStrength}
-            Result: "{res}"''')
+            IMSI: {self.imsi}  USSD: {ussd}  Signal: {self.modem.signalStrength}
+            Result:
+             "{res}"''')
         return res
 
     def send_sms(self, number, content, uid):
@@ -356,14 +355,14 @@ def send_sms(sms_otp):
             try:
                 best_runner.send_sms(number, content, uid)
             except CmsError as e:
-                logger.error(f"Send message error code {e.code}")
+                logger.error(f"Send message error code {e.code} IMSI: {best_runner.imsi}")
                 message = f"SMS error code {e.code}."
                 if e.code == 38:
                     done = True
                     message += 'No such phone number'
                 data = {'uid': uid, 'status': message}
             except Exception as e:
-                logger.error(f"Other error code {str(e)}")
+                logger.error(f"Other error code {str(e)} IMSI: {best_runner.imsi}")
                 data = {'uid': uid, 'status': f"Error: {str(e)}"}
             else:
                 data = {'uid': uid, 'status': 'sent'}
@@ -372,6 +371,8 @@ def send_sms(sms_otp):
             sio.emit('update_otp', data, namespace='/otp')
             if done:
                 break
+            else:
+                logger.warning(f"Retry IMSI: {best_runner.imsi}")
 
 
 @sio.on('send_sms', namespace='/otp')
