@@ -283,9 +283,7 @@ class SMSRunner(threading.Thread):
     def send_sms(self, number, content, uid):
         with self.sms_lock:
             self.sms_count += 1
-            self.modem.smsTextMode = False
             sms = self.modem.sendSms(number, content)
-            self.modem.smsTextMode = True
             self.sms_ref_to_uid[sms.reference] = uid
             logger.debug(f"Sent sms ref: {sms.reference}, UID: {uid}")
 
