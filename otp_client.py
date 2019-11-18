@@ -381,7 +381,7 @@ def send_sms(sms_otp):
 
 @sio.on('send_sms', namespace='/otp')
 def _send_sms(sms_otp):
-    logger.info(f"New SMS {sms_otp}")
+    logger.info(f"New SMS {str(sms_otp).encode('utf8')}")
     send_sms(sms_otp)
 
 
