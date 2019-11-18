@@ -16,11 +16,13 @@ Use the "main" branch, and the GsmModem class if you want to build normal applic
 
 import re
 
-from .util import allLinesMatchingPattern
 from .modem import GsmModem
+from .util import allLinesMatchingPattern
+
 
 class PdpContext(object):
     """ Packet Data Protocol (PDP) context parameter values """
+
     def __init__(self, cid, pdpType, apn, pdpAddress=None, dataCompression=0, headerCompression=0):
         """ Construct a new Packet Data Protocol context
         
@@ -47,7 +49,7 @@ class PdpContext(object):
 
 class GprsModem(GsmModem):
     """ EXPERIMENTAL: Specialized version of GsmModem that includes GPRS/data-specific commands """
-    
+
     @property
     def pdpContexts(self):
         """ Currently-defined Packet Data Protocol (PDP) context list
@@ -59,37 +61,45 @@ class GprsModem(GsmModem):
         """
         result = []
         cgdContResult = self.write('AT+CGDCONT?')
-        matches = allLinesMatchingPattern(re.compile(r'^\+CGDCONT:\s*(\d+),"([^"]+)","([^"]+)","([^"]+)",(\d+),(\d+)'), cgdContResult)
+        matches = allLinesMatchingPattern(re.compile(r'^\+CGDCONT:\s*(\d+),"([^"]+)","([^"]+)","([^"]+)",(\d+),(\d+)'),
+                                          cgdContResult)
         for cgdContMatch in matches:
             cid, pdpType, apn, pdpAddress, dataCompression, headerCompression = cgdContMatch.groups()
             pdpContext = PdpContext(cid, pdpType, apn, pdpAddress, dataCompression, headerCompression)
             result.append(pdpContext)
         return result
-    
+
     @property
     def defaultPdpContext(self):
         """ @return: the default PDP context, or None if not defined """
         pdpContexts = self.pdpContexts
         return pdpContexts[0] if len(pdpContexts) > 0 else None
+
     @defaultPdpContext.setter
     def defaultPdpContext(self, pdpContext):
         """ Set the default PDP context (or clear it by setting it to None) """
-        self.write('AT+CGDCONT=,"{0}","{1}","{2}",{3},{4}'.format(pdpContext.pdpType, pdpContext.apn, pdpContext.pdpAddress or '', pdpContext.dataCompression, pdpContext.headerCompression))
-    
+        self.write('AT+CGDCONT=,"{0}","{1}","{2}",{3},{4}'.format(pdpContext.pdpType, pdpContext.apn,
+                                                                  pdpContext.pdpAddress or '',
+                                                                  pdpContext.dataCompression,
+                                                                  pdpContext.headerCompression))
+
     def definePdpContext(self, pdpContext):
         """ Define a new Packet Data Protocol context, or overwrite an existing one
         
         @param pdpContext: The PDP context to define
         @type pdpContext: gsmmodem.gprs.PdpContext
         """
-        self.write('AT+CGDCONT={0},"{1}","{2}","{3}",{4},{5}'.format(pdpContext.cid or '', pdpContext.pdpType, pdpContext.apn, pdpContext.pdpAddress or '', pdpContext.dataCompression, pdpContext.headerCompression))
+        self.write(
+            'AT+CGDCONT={0},"{1}","{2}","{3}",{4},{5}'.format(pdpContext.cid or '', pdpContext.pdpType, pdpContext.apn,
+                                                              pdpContext.pdpAddress or '', pdpContext.dataCompression,
+                                                              pdpContext.headerCompression))
 
     def initDataConnection(self, pdpCid=1):
         """ Initializes a packet data (GPRS) connection using the specified PDP Context ID """
         # From this point on, we don't want the read thread interfering
-        #self.log.debug('Stopping read thread')
-        #self.alive = False
-        #self.rxThread.join()
+        # self.log.debug('Stopping read thread')
+        # self.alive = False
+        # self.rxThread.join()
         self.log.debug('Init data connection')
         self.write('ATD*99#', expectedResponseTermSeq="CONNECT\r")
         self.log.debug('Data connection open; ready for PPP comms')

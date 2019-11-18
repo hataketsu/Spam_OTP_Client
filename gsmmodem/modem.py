@@ -733,7 +733,7 @@ class GsmModem(SerialComms):
                     return
 
         if encoding != self._smsEncoding:
-            raise ValueError('Unable to set SMS encoding (enocoding {0} not supported)'.format(encoding))
+            raise ValueError('Unable to set SMS encoding (encoding {0} not supported)'.format(encoding))
         else:
             return
 
