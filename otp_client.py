@@ -265,7 +265,7 @@ class SMSRunner(threading.Thread):
         else:
             deliver_status = 'failed'
             logger.error(
-                {'uid': uid, 'status': f'delivery status: {deliver_status}', 'signal': self.modem.signalStrength
+                {'uid': uid, 'status': f'delivery status: {report.deliveryStatus}', 'signal': self.modem.signalStrength
                     , 'imsi': self.imsi})
         sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
