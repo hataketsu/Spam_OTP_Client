@@ -365,9 +365,9 @@ def send_sms(sms_otp):
                     done = True
                     message += 'No such phone number'
                 data = {'uid': uid, 'status': message}
-            except Exception as e:
-                logger.error(f"Other error code {str(e)} IMSI: {best_runner.imsi}")
-                data = {'uid': uid, 'status': f"Error: {str(e)}"}
+            except Exception as e1:
+                logger.error(f"Other error code {str(e1)} IMSI: {best_runner.imsi}")
+                data = {'uid': uid, 'status': f"Error: {str(e1)}"}
             else:
                 data = {'uid': uid, 'status': 'sent'}
                 done = True
