@@ -256,18 +256,19 @@ class SMSRunner(threading.Thread):
         logger.debug(f'''
         ==On status==
         Status: {report.status}, Ref:  {report.reference}, Delivery: {report.deliveryStatus}''')
-        uid = self.sms_ref_to_uid[report.reference]
-        if report.deliveryStatus == 0:
-            deliver_status = 'delivered'
-        elif report.deliveryStatus == 68:
-            deliver_status = 'not delivered'
-            logger.error({'uid': uid, 'status': 'not delivered', 'signal': self.modem.signalStrength})
-        else:
-            deliver_status = 'failed'
-            logger.error(
-                {'uid': uid, 'status': f'delivery status: {report.deliveryStatus}', 'signal': self.modem.signalStrength
-                    , 'imsi': self.imsi})
-        sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
+        if report.reference in self.sms_ref_to_uid:
+            uid = self.sms_ref_to_uid[report.reference]
+            if report.deliveryStatus == 0:
+                deliver_status = 'delivered'
+            elif report.deliveryStatus == 68:
+                deliver_status = 'not delivered'
+                logger.error({'uid': uid, 'status': 'not delivered', 'signal': self.modem.signalStrength})
+            else:
+                deliver_status = 'failed'
+                logger.error(
+                    {'uid': uid, 'status': f'delivery status: {report.deliveryStatus}', 'signal': self.modem.signalStrength
+                        , 'imsi': self.imsi})
+            sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     @logger.catch
     def run_ussd(self, ussd: str):
@@ -346,6 +347,8 @@ def send_sms(sms_otp):
         logger.error("No sim available")
         sio.emit('update_otp', data, namespace='/otp')
     else:
+        data = {'uid': uid, 'status': 'sending'}
+        sio.emit('update_otp', data, namespace='/otp')
         count = MAX_RETRY
         done = False
         while count > 0:
