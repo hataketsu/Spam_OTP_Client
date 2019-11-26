@@ -57,7 +57,8 @@ window.Layout([[
         [sg.Button('Connect all', key='connect_all', button_color=('white', 'green'))],
         [sg.Button("Disconnect", key='disconnect', button_color=('white', 'red'))],
         [sg.Button("Restart", key='restart')],
-        [sg.Button("Run USSD", key='ussd')]
+        [sg.Button("Run USSD", key='ussd'), ],
+        [sg.Button("Switch SMSC", key='smsc'), ],
     ])
 ]])
 
@@ -282,6 +283,12 @@ class SMSRunner(threading.Thread):
 
         return res
 
+    def set_smsc(self, smsc):
+        logger.info(f"IMSI: {self.modem.imsi} => SMSC: {self.modem.smsc}")
+        self.modem.smsc = smsc
+        logger.info(f"IMSI: {self.modem.imsi} => SMSC: {self.modem.smsc}")
+
+
     def send_sms(self, number, content, uid):
         with self.sms_lock:
             self.sms_count += 1
@@ -432,6 +439,14 @@ while btn is not None:
             runner = SMSRunner.get_by_port(selected_port)
             if runner:
                 threading.Thread(target=runner.run_ussd, args=(cmd,)).start()
+    elif btn is 'smsc':
+        smsc = sg.PopupGetText('SMSC')
+        for index in values['thread_table']:
+            selected_port = all_port[index]
+            runner = SMSRunner.get_by_port(selected_port)
+            if runner:
+                threading.Thread(target=runner.set_smsc, args=(smsc,)).start()
+
     btn, values = window.Read(timeout=2000)
     if btn is None:
         break
