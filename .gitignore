@@ -1,4 +1,6 @@
 venv/
 config.ini
+hire_config.ini
 logs/*.log
+hire_logs/*.log
 tests/*

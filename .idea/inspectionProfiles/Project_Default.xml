@@ -4,7 +4,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="189">
+          <list size="191">
             <item index="0" class="java.lang.String" itemvalue="google-pasta" />
             <item index="1" class="java.lang.String" itemvalue="tensorflow-estimator" />
             <item index="2" class="java.lang.String" itemvalue="greenlet" />
@@ -194,6 +194,8 @@
             <item index="186" class="java.lang.String" itemvalue="grpcio" />
             <item index="187" class="java.lang.String" itemvalue="pipdate" />
             <item index="188" class="java.lang.String" itemvalue="ply" />
+            <item index="189" class="java.lang.String" itemvalue="six" />
+            <item index="190" class="java.lang.String" itemvalue="certifi" />
           </list>
         </value>
       </option>
