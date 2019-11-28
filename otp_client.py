@@ -147,7 +147,6 @@ class SMSRunner(threading.Thread):
 
     def set_status(self, status):
         self.status = status
-        logger.debug(f"{self.port} change status to {status}")
 
     def run(self):
         self.connect()
@@ -259,18 +258,16 @@ class SMSRunner(threading.Thread):
         Status: {report.status}, Ref:  {report.reference}, Delivery: {report.deliveryStatus}''')
         if report.reference in self.sms_ref_to_uid:
             uid = self.sms_ref_to_uid[report.reference]
-            if report.deliveryStatus == 0:
-                deliver_status = 'delivered'
-            elif report.deliveryStatus == 68:
-                deliver_status = 'not delivered'
-                logger.error({'uid': uid, 'status': 'not delivered', 'signal': self.modem.signalStrength})
-            else:
+            # if report.deliveryStatus == 0:
+            #     pass
+            # deliver_status = 'delivered'
+            if report.deliveryStatus != 0:
                 deliver_status = 'failed'
                 logger.error(
                     {'uid': uid, 'status': f'delivery status: {report.deliveryStatus}',
                      'signal': self.modem.signalStrength
                         , 'imsi': self.imsi})
-            sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
+                sio.emit('update_otp', {'uid': uid, 'status': deliver_status}, namespace='/otp')
 
     @logger.catch
     def run_ussd(self, ussd: str):
@@ -287,7 +284,6 @@ class SMSRunner(threading.Thread):
         logger.info(f"IMSI: {self.modem.imsi} => SMSC: {self.modem.smsc}")
         self.modem.smsc = smsc
         logger.info(f"IMSI: {self.modem.imsi} => SMSC: {self.modem.smsc}")
-
 
     def send_sms(self, number, content, uid):
         with self.sms_lock:
@@ -355,8 +351,8 @@ def send_sms(sms_otp):
         logger.error("No sim available")
         sio.emit('update_otp', data, namespace='/otp')
     else:
-        data = {'uid': uid, 'status': 'sending'}
-        sio.emit('update_otp', data, namespace='/otp')
+        # data = {'uid': uid, 'status': 'sending'}
+        # sio.emit('update_otp', data, namespace='/otp')
         count = MAX_RETRY
         done = False
         while count > 0:
@@ -371,18 +367,20 @@ def send_sms(sms_otp):
                 best_runner.send_sms(number, content, uid)
             except CmsError as e:
                 logger.error(f"Send message error code {e.code} IMSI: {best_runner.imsi}")
-                message = f"SMS error code {e.code}."
                 if e.code == 38:
                     done = True
-                data = {'uid': uid, 'status': message}
+                data = {'uid': uid, 'status': f"SMS error code {e.code}."}
+                data = None
+
             except Exception as e1:
                 logger.error(f"Other error code {str(e1)} IMSI: {best_runner.imsi}")
-                data = {'uid': uid, 'status': f"Error: {str(e1)}"}
+                data = None
             else:
                 data = {'uid': uid, 'status': 'sent'}
                 done = True
-            logger.info(data)
-            sio.emit('update_otp', data, namespace='/otp')
+            if data:
+                logger.info(data)
+                sio.emit('update_otp', data, namespace='/otp')
             if done:
                 break
             else:
