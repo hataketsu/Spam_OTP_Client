@@ -36,7 +36,7 @@ config = ConfigParser()
 config.read(CONFIG_INI)
 API_HOST = config['default']['api_host']
 EXCLUDE_PORTS = config['default']['exclude_ports'].split()
-
+SERVER_NAME = config['default']['server_name']
 telegram = NotificationHandler('telegram', defaults={'token': config['default']['telegram_api'],
                                                      'chat_id': config['default']['telegram_id']})
 logger.add(telegram, level=logging.ERROR)
@@ -389,13 +389,15 @@ def send_sms(sms_otp):
 
 @sio.on('send_sms', namespace='/otp')
 def _send_sms(sms_otp):
-    logger.info(f"New SMS {str(sms_otp).encode('utf8')}")
-    send_sms(sms_otp)
+    if sms_otp['client_id'] == sio.sid:
+        logger.info(f"New SMS {str(sms_otp).encode('utf8')}")
+        send_sms(sms_otp)
 
 
 @sio.on('connect', namespace='/otp')
 def _connect():
     logger.info(f'Connected to {API_HOST} with ID {sio.sid}')
+    sio.emit('update_id', {'name': SERVER_NAME}, namespace='/otp')
 
 
 @sio.on('disconnect', namespace='/otp')
