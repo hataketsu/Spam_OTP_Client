@@ -20,7 +20,7 @@ from gsmmodem import GsmModem
 from gsmmodem.exceptions import CommandError, TimeoutException, CmsError
 from gsmmodem.modem import StatusReport
 
-MAX_RETRY = 4
+MAX_RETRY = 10
 
 logger.add("logs/log.log", rotation="00:00")
 
