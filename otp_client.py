@@ -83,8 +83,7 @@ def get_table_row(port):
         except:
             network = 'Not connected'
         row_index = thread.get_table_row()
-        if thread.sms_count > 5 or thread.sms_fail * 2 > thread.sms_count:
-            logger.info(f'Warning row {row_index}')
+        if thread.sms_count > 45 or thread.sms_fail * 2 > thread.sms_count:
             color = (row_index, 'white', 'red',)
         else:
             color = (row_index, 'black', 'white',)
@@ -103,7 +102,6 @@ def update_table():
     data = pool.map(get_table_row, all_port)
     rows_data = [x[0] for x in data]
     rows_color = [x[1] for x in data]
-    print(rows_color)
     rows = table.SelectedRows
     table.Update(rows_data, select_rows=rows, row_colors=rows_color)
 
@@ -120,8 +118,8 @@ class SMSRunner(threading.Thread):
         self.clear_data()
         self.last_check_signal = 0
         self.signal = 'Off'
-        self.sms_count = 15
-        self.sms_fail = 10
+        self.sms_count = 0
+        self.sms_fail = 0
 
         self.sms_lock = threading.Lock()
         self.set_status('Initializing...')
