@@ -83,10 +83,10 @@ def get_table_row(port):
         except:
             network = 'Not connected'
 
-        return [thread.port, thread.imsi, network, thread.sms_count, signal,
+        return [thread.port, thread.imsi, network, thread.sms_count,thread.sms_fail, signal,
                 thread.status]
     else:
-        return [port, "", "", "", "Off", "Not connected"]
+        return [port, "", "", "","", "Off", "Not connected"]
 
 
 pool = ThreadPool(32)
