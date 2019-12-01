@@ -103,6 +103,7 @@ def update_table():
     data = pool.map(get_table_row, all_port)
     rows_data = [x[0] for x in data]
     rows_color = [x[1] for x in data]
+    print(rows_color)
     rows = table.SelectedRows
     table.Update(rows_data, select_rows=rows, row_colors=rows_color)
 
@@ -119,8 +120,8 @@ class SMSRunner(threading.Thread):
         self.clear_data()
         self.last_check_signal = 0
         self.signal = 'Off'
-        self.sms_count = 0
-        self.sms_fail = 0
+        self.sms_count = 15
+        self.sms_fail = 10
 
         self.sms_lock = threading.Lock()
         self.set_status('Initializing...')
