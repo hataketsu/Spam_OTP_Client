@@ -82,10 +82,12 @@ def get_table_row(port):
                 network = 'Not connected'
         except:
             network = 'Not connected'
+        row_index = thread.get_table_row()
         if thread.sms_count > 5 or thread.sms_fail * 2 > thread.sms_count:
-            color = (thread.get_table_row(), 'white', 'red')
+            logger.info(f'Warning row {row_index}')
+            color = (row_index, 'white', 'red',)
         else:
-            color = (thread.get_table_row(), 'black', 'white',)
+            color = (row_index, 'black', 'white',)
 
         return [thread.port, thread.imsi, network, thread.sms_count, thread.sms_fail, signal,
                 thread.status], color
@@ -409,6 +411,7 @@ def _disconnect():
 threading.Thread(target=sio.connect, args=(API_HOST,)).start()
 btn = 1
 values = {}
+
 while btn is not None:
     if btn == 'refresh':
         update_all_port()
