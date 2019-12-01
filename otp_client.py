@@ -82,11 +82,15 @@ def get_table_row(port):
                 network = 'Not connected'
         except:
             network = 'Not connected'
+        if thread.sms_count > 5 or thread.sms_fail * 2 > thread.sms_count:
+            color = (thread.get_table_row(), 'white', 'red')
+        else:
+            color = (thread.get_table_row(), 'black', 'white',)
 
-        return [thread.port, thread.imsi, network, thread.sms_count,thread.sms_fail, signal,
-                thread.status]
+        return [thread.port, thread.imsi, network, thread.sms_count, thread.sms_fail, signal,
+                thread.status], color
     else:
-        return [port, "", "", "","", "Off", "Not connected"]
+        return [port, "", "", "", "", "Off", "Not connected"], (-1, 'black', 'white',)
 
 
 pool = ThreadPool(32)
@@ -95,8 +99,10 @@ pool = ThreadPool(32)
 def update_table():
     global all_port
     data = pool.map(get_table_row, all_port)
+    rows_data = [x[0] for x in data]
+    rows_color = [x[1] for x in data]
     rows = table.SelectedRows
-    table.Update(data, select_rows=rows)
+    table.Update(rows_data, select_rows=rows, row_colors=rows_color)
 
 
 class SMSRunner(threading.Thread):
@@ -106,7 +112,7 @@ class SMSRunner(threading.Thread):
         self.port = port
         self.alive = True
         self.modem: GsmModem = gsmmodem.GsmModem(self.port, smsReceivedCallbackFunc=self.receive_sms,
-                                                 smsStatusReportCallback=self.on_sms_status,
+                                                 # smsStatusReportCallback=self.on_sms_status,
                                                  cpinCallbackFunc=self.on_cpin)
         self.clear_data()
         self.last_check_signal = 0

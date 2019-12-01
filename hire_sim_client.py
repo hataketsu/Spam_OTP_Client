@@ -82,10 +82,11 @@ def get_table_row(port):
         except:
             network = 'Not connected'
 
+
         return [thread.port, thread.imsi, network, thread.phone_number, signal,
                 thread.status]
     else:
-        return [port, "", "", "", "Off", "Not connected"]
+        return [port, "", "", "", "Off", "Not connected"],(thread.get_table_row(), 'black', 'white',)
 
 
 pool = ThreadPool(32)
@@ -94,6 +95,9 @@ pool = ThreadPool(32)
 def update_table():
     global all_port
     data = pool.map(get_table_row, all_port)
+    rows_data = [x[0] for x in data]
+    rows_color = [x[1] for x in data]
+
     rows = table.SelectedRows
     table.Update(data, select_rows=rows)
 
