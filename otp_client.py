@@ -348,43 +348,33 @@ def send_sms(sms_otp):
         selected_runners = SMSRunner.get_online_runners()
     if len(selected_runners) == 0:
         data = {'uid': uid, 'status': 'no sim available'}
-        logger.error("No sim available")
+        logger.error("Server:{SERVER_NAME} No sim available ")
         sio.emit('update_otp', data, namespace='/otp')
     else:
-        # data = {'uid': uid, 'status': 'sending'}
-        # sio.emit('update_otp', data, namespace='/otp')
-        count = MAX_RETRY
-        done = False
-        while count > 0:
-            count -= 1
-            random.shuffle(selected_runners)
-            best_runner = None
-            for runner in selected_runners:
-                if best_runner is None or runner.sms_count < best_runner.sms_count:
-                    best_runner = runner
-            logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
-            try:
-                best_runner.send_sms(number, content, uid)
-            except CmsError as e:
-                logger.error(f"Send message error code {e.code} IMSI: {best_runner.imsi}")
-                if e.code == 38:
-                    done = True
-                data = {'uid': uid, 'status': f"SMS error code {e.code}."}
-                data = None
+        random.shuffle(selected_runners)
+        best_runner = None
+        for runner in selected_runners:
+            if best_runner is None or runner.sms_count < best_runner.sms_count:
+                best_runner = runner
+        logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
+        try:
+            best_runner.send_sms(number, content, uid)
+        except CmsError as e:
+            logger.error(f"Send message error code {e.code} Server:{SERVER_NAME} IMSI: {best_runner.imsi}")
+            if e.code == 38:
+                data = {'uid': uid, 'status': f"SMS error code {e.code}. Server:{SERVER_NAME} IMSI: {best_runner.imsi}", 'action': 'stop'}
+            else:
+                data = {'uid': uid, 'status': f"SMS error code {e.code}. Server:{SERVER_NAME} IMSI: {best_runner.imsi}"}
 
-            except Exception as e1:
-                logger.error(f"Other error code {str(e1)} IMSI: {best_runner.imsi}")
-                data = None
-            else:
-                data = {'uid': uid, 'status': 'sent'}
-                done = True
-            if data:
-                logger.info(data)
-                sio.emit('update_otp', data, namespace='/otp')
-            if done:
-                break
-            else:
-                logger.warning(f"Retry IMSI: {best_runner.imsi}")
+        except Exception as e1:
+            txt = f"Other error code {str(e1)} Server:{SERVER_NAME} IMSI: {best_runner.imsi}"
+            logger.error(txt)
+            data = {'uid': uid, 'status': txt}
+        else:
+            data = {'uid': uid, 'status': 'sent'}
+        if data:
+            logger.info(data)
+            sio.emit('update_otp', data, namespace='/otp')
 
 
 @sio.on('send_sms', namespace='/otp')
