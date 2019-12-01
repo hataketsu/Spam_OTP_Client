@@ -43,9 +43,9 @@ logger.add(telegram, level=logging.ERROR)
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
-table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8,' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 33),
+table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 33),
                  max_col_width=100,
-                 headings=['Port', 'IMSI', 'Network', 'SMS count','Fails', 'Signal', 'Status'],
+                 headings=['Port', 'IMSI', 'Network', 'SMS count', 'Fails', 'Signal', 'Status'],
                  justification='right', key='thread_table')
 window.Layout([[
     sg.Column([
@@ -350,7 +350,7 @@ def send_sms(sms_otp):
         selected_runners = SMSRunner.get_online_runners()
     if len(selected_runners) == 0:
         data = {'uid': uid, 'status': 'no sim available'}
-        logger.error("Server:{SERVER_NAME} No sim available ")
+        logger.error(f"Server:{SERVER_NAME} No sim available ")
         sio.emit('update_otp', data, namespace='/otp')
     else:
         random.shuffle(selected_runners)
