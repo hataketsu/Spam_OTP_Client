@@ -43,9 +43,9 @@ logger.add(telegram, level=logging.ERROR)
 
 sg.ChangeLookAndFeel('Reddit')
 window = sg.Window("SMS Deliver")
-table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 33),
+table = sg.Table([[' ' * 15, ' ' * 18, ' ' * 12, ' ' * 8,' ' * 8, ' ' * 12, ' ' * 36]], size=(200, 33),
                  max_col_width=100,
-                 headings=['Port', 'IMSI', 'Network', 'SMS count', 'Signal', 'Status'],
+                 headings=['Port', 'IMSI', 'Network', 'SMS count','Fails', 'Signal', 'Status'],
                  justification='right', key='thread_table')
 window.Layout([[
     sg.Column([
@@ -112,6 +112,8 @@ class SMSRunner(threading.Thread):
         self.last_check_signal = 0
         self.signal = 'Off'
         self.sms_count = 0
+        self.sms_fail = 0
+
         self.sms_lock = threading.Lock()
         self.set_status('Initializing...')
 
@@ -360,13 +362,16 @@ def send_sms(sms_otp):
         try:
             best_runner.send_sms(number, content, uid)
         except CmsError as e:
+            best_runner.sms_fail += 1
             logger.error(f"Send message error code {e.code} Server:{SERVER_NAME} IMSI: {best_runner.imsi}")
             if e.code == 38:
-                data = {'uid': uid, 'status': f"SMS error code {e.code}. Server:{SERVER_NAME} IMSI: {best_runner.imsi}", 'action': 'stop'}
+                data = {'uid': uid, 'status': f"SMS error code {e.code}. Server:{SERVER_NAME} IMSI: {best_runner.imsi}",
+                        'action': 'stop'}
             else:
                 data = {'uid': uid, 'status': f"SMS error code {e.code}. Server:{SERVER_NAME} IMSI: {best_runner.imsi}"}
 
         except Exception as e1:
+            best_runner.sms_fail += 1
             txt = f"Other error code {str(e1)} Server:{SERVER_NAME} IMSI: {best_runner.imsi}"
             logger.error(txt)
             data = {'uid': uid, 'status': txt}
