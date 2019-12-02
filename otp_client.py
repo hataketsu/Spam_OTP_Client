@@ -296,7 +296,6 @@ class SMSRunner(threading.Thread):
 
     def send_sms(self, number, content, uid):
         with self.sms_lock:
-            self.sms_count += 1
             self.modem.smsTextMode = False
             sms = self.modem.sendSms(number, content)
             self.modem.smsTextMode = True
@@ -345,7 +344,7 @@ prev_data = []
 
 time_out = time.time()
 
-
+select_lock=threading.Lock()
 def send_sms(sms_otp):
     number = sms_otp['number']
     content = sms_otp['content']
@@ -360,12 +359,14 @@ def send_sms(sms_otp):
         logger.error(f"Server:{SERVER_NAME} No sim available ")
         sio.emit('update_otp', data, namespace='/otp')
     else:
-        random.shuffle(selected_runners)
-        best_runner = None
-        for runner in selected_runners:
-            if best_runner is None or runner.sms_count < best_runner.sms_count:
-                best_runner = runner
-        logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
+        with select_lock:
+            random.shuffle(selected_runners)
+            best_runner = None
+            for runner in selected_runners:
+                if best_runner is None or (runner.sms_count+runner.sms_fail) < (best_runner.sms_count+best_runner.sms_fail):
+                    best_runner = runner
+            best_runner.sms_count += 1
+            logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
         try:
             best_runner.send_sms(number, content, uid)
         except CmsError as e:
