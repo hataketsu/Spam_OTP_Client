@@ -387,6 +387,8 @@ def send_sms(sms_otp):
         except Exception as e1:
             best_runner.sms_fail += 1
             txt = f"Other error code {str(e1)} Server:{SERVER_NAME} IMSI: {best_runner.imsi}"
+            if 'Attempting to use a port that is not open' in txt:
+                best_runner.restart()
             logger.error(txt)
             data = {'uid': uid, 'status': txt}
         else:
