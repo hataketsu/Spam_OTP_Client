@@ -76,6 +76,8 @@ def get_table_row(port):
                 if thread.network_name == "" or thread.network_name is None:
                     thread.network_name = thread.modem.networkName
                     signal = thread.get_signal(force=True)
+                    if thread.network_name.lower().startswith('vn'):
+                        thread.disconnect()
                 network = thread.network_name
                 signal = thread.get_signal()
             else:
@@ -194,22 +196,23 @@ class SMSRunner(threading.Thread):
     def connect(self):
         self.reset()
 
-        self.set_status('Connecting')
         while self.alive:
+            self.set_status('Connecting')
             try:
                 self.modem.connect(waitingForModemToStartInSeconds=20)
             except CommandError as e:
-                self.close_modem()
                 if e.code == 10:
                     self.set_status(f'No SIM detected')
                 elif e.code == 3:
                     self.set_status(f'Command error')
+                self.close_modem()
+
             except SerialException:
                 self.set_status('Cannot open this port')
                 self.close_modem()
             except TimeoutException:
-                self.close_modem()
                 self.set_status(f'Timeout open this port')
+                self.close_modem()
             except:
                 self.close_modem()
             else:
@@ -344,14 +347,16 @@ prev_data = []
 
 time_out = time.time()
 
-select_lock=threading.Lock()
+select_lock = threading.Lock()
+
+
 def send_sms(sms_otp):
     number = sms_otp['number']
     content = sms_otp['content']
     uid = sms_otp['uid']
     network = sms_otp['network']
     selected_runners = [runner for runner in SMSRunner.get_online_runners() if
-                        network in runner.network_name.lower()]
+                        network.lower() == runner.network_name.lower()]
     if len(selected_runners) == 0:
         selected_runners = SMSRunner.get_online_runners()
     if len(selected_runners) == 0:
@@ -363,7 +368,8 @@ def send_sms(sms_otp):
             random.shuffle(selected_runners)
             best_runner = None
             for runner in selected_runners:
-                if best_runner is None or (runner.sms_count+runner.sms_fail) < (best_runner.sms_count+best_runner.sms_fail):
+                if best_runner is None or (runner.sms_count + runner.sms_fail) < (
+                        best_runner.sms_count + best_runner.sms_fail):
                     best_runner = runner
             best_runner.sms_count += 1
             logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
