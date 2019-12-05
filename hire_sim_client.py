@@ -35,6 +35,8 @@ CONFIG_INI = 'hire_config.ini'
 config = ConfigParser()
 config.read(CONFIG_INI)
 API_HOST = config['default']['api_host']
+SERVER_NAME = config['default']['server_name']
+print(API_HOST)
 EXCLUDE_PORTS = config['default']['exclude_ports'].split()
 
 telegram = NotificationHandler('telegram', defaults={'token': config['default']['telegram_api'],
@@ -82,11 +84,10 @@ def get_table_row(port):
         except:
             network = 'Not connected'
 
-
         return [thread.port, thread.imsi, network, thread.phone_number, signal,
                 thread.status]
     else:
-        return [port, "", "", "", "Off", "Not connected"],(thread.get_table_row(), 'black', 'white',)
+        return [port, "", "", "", "Off", "Not connected"]
 
 
 pool = ThreadPool(32)
@@ -95,11 +96,17 @@ pool = ThreadPool(32)
 def update_table():
     global all_port
     data = pool.map(get_table_row, all_port)
-    rows_data = [x[0] for x in data]
-    rows_color = [x[1] for x in data]
 
     rows = table.SelectedRows
     table.Update(data, select_rows=rows)
+    sims = []
+    for row in data:
+        port, imsi, network, phone_number, signal, status = row
+        if status == 'Connected' and len(phone_number) == len('0947431685'):
+            sims.append({'imsi': imsi, 'phone': phone_number, 'port': port})
+    print('emit', sims)
+    if sio.connected:
+        sio.emit('update_sim', sims, namespace='/sim')
 
 
 class SMSRunner(threading.Thread):
@@ -109,7 +116,6 @@ class SMSRunner(threading.Thread):
         self.port = port
         self.alive = True
         self.modem: GsmModem = gsmmodem.GsmModem(self.port, smsReceivedCallbackFunc=self.receive_sms,
-                                                 smsStatusReportCallback=self.on_sms_status,
                                                  cpinCallbackFunc=self.on_cpin)
         self.clear_data()
         self.last_check_signal = 0
@@ -235,7 +241,7 @@ class SMSRunner(threading.Thread):
             time.sleep(0.5)
         self.imsi = imsi
         self.modem.write('AT+CNMI=3,1,0,2,0')
-        # self.modem.write('AT+CPMS="SM","SM","SM"')
+        self.modem.write('AT+CPMS="SM","SM","SM"')
         self.set_status(f'Connected')
 
     def close_modem(self):
@@ -352,9 +358,10 @@ prev_data = []
 time_out = time.time()
 
 
-@sio.on('connect', namespace='/otp')
+@sio.on('connect', namespace='/sim')
 def _connect():
     logger.info(f'Connected to {API_HOST} with ID {sio.sid}')
+    sio.emit('update_server', SERVER_NAME, namespace='/sim')
 
 
 threading.Thread(target=sio.connect, args=(API_HOST,)).start()
