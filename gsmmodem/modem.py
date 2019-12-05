@@ -1501,7 +1501,6 @@ class GsmModem(SerialComms):
                 # Some modems (ZTE) do not always read return status - default to RECEIVED UNREAD
                 stat = Sms.STATUS_RECEIVED_UNREAD
             pdu = msgData[1]
-            print("pdu", pdu)
             smsDict = decodeSmsPdu(pdu)
             if smsDict['type'] == 'SMS-DELIVER':
                 return ReceivedSms(self, int(stat), smsDict['number'], smsDict['time'], smsDict['text'],
