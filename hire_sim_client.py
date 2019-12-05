@@ -310,15 +310,15 @@ class SMSRunner(threading.Thread):
         network_name = self.modem.networkName.lower()
         if 'mobifone' in network_name:
             res = self.run_ussd('*0#')
-            phone = '0' + res[2:]
+            phone = '84' + res[2:]
             return phone
         elif 'vinaphone' in network_name:
             res = self.run_ussd('*110#')
-            phone = '0' + re.search('(\d{7,})', res)[0]
+            phone = '84' + re.search('(\d{7,})', res)[0]
             return phone
         elif 'viettel' in network_name:
             res = self.run_ussd('*101#')
-            phone = '0' + re.search('(\d{7,})', res)[0][2:]
+            phone = '84' + re.search('(\d{7,})', res)[0][2:]
             return phone
         elif 'vietnamobile' in network_name:
             res = self.run_ussd('*101#')
