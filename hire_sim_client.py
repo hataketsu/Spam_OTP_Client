@@ -266,7 +266,6 @@ class SMSRunner(threading.Thread):
             'number': sms.number
         }
         if sio.connected:
-            print(data)
             sio.emit('save_sms', data, namespace='/sim')
 
     def on_cpin(self, line):
