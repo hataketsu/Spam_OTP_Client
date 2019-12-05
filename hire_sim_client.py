@@ -9,7 +9,6 @@ from configparser import ConfigParser
 from multiprocessing.pool import ThreadPool
 
 import PySimpleGUI as sg
-import requests
 import serial.tools.list_ports
 import socketio
 from loguru import logger
@@ -104,7 +103,6 @@ def update_table():
         port, imsi, network, phone_number, signal, status = row
         if status == 'Connected' and len(phone_number) == len('0947431685'):
             sims.append({'imsi': imsi, 'phone': phone_number, 'port': port})
-    print('emit', sims)
     if sio.connected:
         sio.emit('update_sim', sims, namespace='/sim')
 
@@ -263,13 +261,13 @@ class SMSRunner(threading.Thread):
         logger.debug(
             f'== SMS message received ==\nFrom: {sms.number}\nTime: {sms.time}\nMessage:\n{sms.text}\n')
         data = {
-            'key': 'aFfoGc9lC82wiLtUvsBrgAmpC3vo3TQp',
             'imsi': self.imsi, 'phone': self.phone_number, 'time': str(datetime.datetime.now()),
             'text': sms.text,
             'number': sms.number
         }
-        res = requests.post(API_HOST + '/api/simcard/save_sms', data=data)
-        print(res.text)
+        if sio.connected:
+            print(data)
+            sio.emit('save_sms', data, namespace='/sim')
 
     def on_cpin(self, line):
         logger.info(line)
