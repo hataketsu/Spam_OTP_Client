@@ -101,7 +101,7 @@ def update_table():
     sims = []
     for row in data:
         port, imsi, network, phone_number, signal, status = row
-        if status == 'Connected' and len(phone_number) == len('0947431685'):
+        if status == 'Connected' and len(phone_number) == len('84947431685'):
             sims.append({'imsi': imsi, 'phone': phone_number, 'port': port})
     if sio.connected:
         sio.emit('update_sim', sims, namespace='/sim')
