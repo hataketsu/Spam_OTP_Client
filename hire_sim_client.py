@@ -91,9 +91,11 @@ def get_table_row(port):
 
 pool = ThreadPool(32)
 
+prev_sims = []
+
 
 def update_table():
-    global all_port
+    global all_port, prev_sims
     data = pool.map(get_table_row, all_port)
 
     rows = table.SelectedRows
@@ -103,8 +105,10 @@ def update_table():
         port, imsi, network, phone_number, signal, status = row
         if status == 'Connected' and len(phone_number) == len('84947431685'):
             sims.append({'imsi': imsi, 'phone': phone_number, 'port': port})
-    if sio.connected:
-        sio.emit('update_sim', sims, namespace='/sim')
+    if prev_sims != sims:
+        prev_sims = sims
+        if sio.connected:
+            sio.emit('update_sim', sims, namespace='/sim')
 
 
 class SMSRunner(threading.Thread):
@@ -357,8 +361,10 @@ time_out = time.time()
 
 @sio.on('connect', namespace='/sim')
 def _connect():
+    global prev_sims
     logger.info(f'Connected to {API_HOST} with ID {sio.sid}')
     sio.emit('update_server', SERVER_NAME, namespace='/sim')
+    prev_sims = []
 
 
 threading.Thread(target=sio.connect, args=(API_HOST,)).start()

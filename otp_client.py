@@ -368,8 +368,8 @@ def send_sms(sms_otp):
             random.shuffle(selected_runners)
             best_runner = None
             for runner in selected_runners:
-                if best_runner is None or (runner.sms_count + runner.sms_fail) < (
-                        best_runner.sms_count + best_runner.sms_fail):
+                if best_runner is None or (runner.sms_count + runner.sms_fail*3) < (
+                        best_runner.sms_count + best_runner.sms_fail*3):
                     best_runner = runner
             best_runner.sms_count += 1
             logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
