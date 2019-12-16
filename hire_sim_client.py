@@ -263,7 +263,7 @@ class SMSRunner(threading.Thread):
 
     def receive_sms(self, sms):
         logger.debug(
-            f'== SMS message received ==\nFrom: {sms.number}\nTime: {sms.time}\nMessage:\n{sms.text}\n')
+            f'== SMS message received ==\nFrom: {sms.number}\nTime: {sms.time}\nMessage:\n{sms.text.encode()}\n')
         data = {
             'imsi': self.imsi, 'phone': self.phone_number, 'time': str(datetime.datetime.now()),
             'text': sms.text,
