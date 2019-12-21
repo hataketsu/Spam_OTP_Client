@@ -13,7 +13,7 @@ netifaces==0.10.9
 notifiers==1.2.1
 pyrsistent==0.15.5
 pyserial==3.4
-PySimpleGUI==4.6.0
+PySimpleGUI
 PySocks==1.7.1
 python-dotenv==0.10.3
 python-engineio==3.10.0
