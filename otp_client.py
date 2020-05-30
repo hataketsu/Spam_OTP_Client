@@ -14,6 +14,7 @@ import socketio
 from loguru import logger
 from notifiers.logging import NotificationHandler
 from serial import SerialException
+from smspdu.codecs import UCS2
 
 import gsmmodem
 from gsmmodem import GsmModem
@@ -57,7 +58,10 @@ window.Layout([[
         [sg.Button('Connect all', key='connect_all', button_color=('white', 'green'))],
         [sg.Button("Disconnect", key='disconnect', button_color=('white', 'red'))],
         [sg.Button("Restart", key='restart')],
+        [sg.Button("Send SMS", key='send')],
+        [sg.Button("Dial", key='call')],
         [sg.Button("Run USSD", key='ussd'), ],
+        [sg.Button("Run 101", key='ussd101'), ],
         [sg.Button("Switch SMSC", key='smsc'), ],
     ])
 ]])
@@ -76,8 +80,8 @@ def get_table_row(port):
                 if thread.network_name == "" or thread.network_name is None:
                     thread.network_name = thread.modem.networkName
                     signal = thread.get_signal(force=True)
-                    if thread.network_name.lower().startswith('vn'):
-                        thread.disconnect()
+                    # if thread.network_name.lower().startswith('vn'):
+                    #     thread.disconnect()
                 network = thread.network_name
                 signal = thread.get_signal()
             else:
@@ -111,11 +115,11 @@ def update_table():
 class SMSRunner(threading.Thread):
     def __init__(self, port):
         super().__init__()
-        logger.debug(f"Start new thread {port}")
+        logger.info(f"Start new thread {port}")
         self.port = port
         self.alive = True
         self.modem: GsmModem = gsmmodem.GsmModem(self.port, smsReceivedCallbackFunc=self.receive_sms,
-                                                 # smsStatusReportCallback=self.on_sms_status,
+                                                 smsStatusReportCallback=self.on_sms_status,
                                                  cpinCallbackFunc=self.on_cpin)
         self.clear_data()
         self.last_check_signal = 0
@@ -194,7 +198,7 @@ class SMSRunner(threading.Thread):
         time.sleep(0.5)
 
     def connect(self):
-        self.reset()
+        # self.reset()
 
         while self.alive:
             self.set_status('Connecting')
@@ -265,7 +269,7 @@ class SMSRunner(threading.Thread):
                 self.restart()
 
     def on_sms_status(self, report: StatusReport):
-        logger.debug(f'''
+        print(f'''
         ==On status==
         Status: {report.status}, Ref:  {report.reference}, Delivery: {report.deliveryStatus}''')
         if report.reference in self.sms_ref_to_uid:
@@ -283,13 +287,15 @@ class SMSRunner(threading.Thread):
 
     @logger.catch
     def run_ussd(self, ussd: str):
+        self.modem.smsTextMode = True
         res = self.modem.sendUssd(ussd).message
+        res = UCS2.decode(res)
         logger.info(
             f''''Network: {self.modem.networkName}
         IMSI: {self.imsi}  USSD: {ussd}  Signal: {self.modem.signalStrength}
         Result:
          "{res}"''')
-
+        sg.Popup(res)
         return res
 
     def set_smsc(self, smsc):
@@ -304,6 +310,9 @@ class SMSRunner(threading.Thread):
             self.modem.smsTextMode = True
             self.sms_ref_to_uid[sms.reference] = uid
             logger.debug(f"Sent sms ref: {sms.reference}, UID: {uid}")
+
+    def call(self, number):
+        print(self.modem.dial(number))
 
     def get_signal(self, force=False):
         if force or time.time() - self.last_check_signal > 10000:
@@ -368,8 +377,8 @@ def send_sms(sms_otp):
             random.shuffle(selected_runners)
             best_runner = None
             for runner in selected_runners:
-                if best_runner is None or (runner.sms_count + runner.sms_fail*3) < (
-                        best_runner.sms_count + best_runner.sms_fail*3):
+                if best_runner is None or (runner.sms_count + runner.sms_fail * 3) < (
+                        best_runner.sms_count + best_runner.sms_fail * 3):
                     best_runner = runner
             best_runner.sms_count += 1
             logger.info(f'Select SIM {best_runner.network_name}, IMSI: {best_runner.imsi}')
@@ -416,7 +425,7 @@ def _disconnect():
     logger.info(f'Disconnected to {API_HOST} with ID {sio.sid}')
 
 
-threading.Thread(target=sio.connect, args=(API_HOST,)).start()
+# threading.Thread(target=sio.connect, args=(API_HOST,)).start()
 btn = 1
 values = {}
 
@@ -444,14 +453,43 @@ while btn is not None:
             runner = SMSRunner.get_by_port(selected_port)
             if runner:
                 threading.Thread(target=runner.restart).start()
-    elif btn is 'ussd':
+
+    elif btn == 'ussd':
         cmd = sg.PopupGetText('USSD Command')
         for index in values['thread_table']:
             selected_port = all_port[index]
             runner = SMSRunner.get_by_port(selected_port)
             if runner:
-                threading.Thread(target=runner.run_ussd, args=(cmd,)).start()
-    elif btn is 'smsc':
+                thread = threading.Thread(target=runner.run_ussd, args=(cmd,))
+                thread.setDaemon(True)
+                thread.start()
+    elif btn == 'ussd101':
+        for index in values['thread_table']:
+            selected_port = all_port[index]
+            runner = SMSRunner.get_by_port(selected_port)
+            if runner:
+                thread = threading.Thread(target=runner.run_ussd, args=('*101#',))
+                thread.setDaemon(True)
+                thread.start()
+    elif btn == 'send':
+        sms = sg.PopupGetText('SMS Content')
+        number = sg.PopupGetText('Number')
+        for index in values['thread_table']:
+            selected_port = all_port[index]
+            runner = SMSRunner.get_by_port(selected_port)
+            if runner:
+                thread = threading.Thread(target=runner.send_sms, args=(number, sms, '133'))
+                thread.start()
+    elif btn == 'call':
+        number = sg.PopupGetText('Number')
+        for index in values['thread_table']:
+            selected_port = all_port[index]
+            runner = SMSRunner.get_by_port(selected_port)
+            if runner:
+                thread = threading.Thread(target=runner.call, args=(number,))
+                thread.setDaemon(True)
+                thread.start()
+    elif btn == 'smsc':
         smsc = sg.PopupGetText('SMSC')
         for index in values['thread_table']:
             selected_port = all_port[index]

@@ -946,7 +946,7 @@ class GsmModem(SerialComms):
             # Encode message text and set data coding scheme based on text contents
             if encodedText == None:
                 # Cannot encode text using GSM-7; use UCS2 instead
-                self.smsEncoding = 'HEX'
+                self.smsEncoding = 'UCS2'
             else:
                 self.smsEncoding = 'GSM'
 

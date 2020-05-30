@@ -1,0 +1,26 @@
+import requests
+import socketio
+
+sio = socketio.Client()
+
+
+@sio.event
+def connect():
+    print('connection established')
+
+
+@sio.on('biddings-leaderboard-update')
+def message(data):
+    print('message received with ', data)
+    res = requests.post("https://httpbin.org/post", json=data)
+    print(res.text)
+
+
+@sio.event
+def disconnect():
+    print('disconnected from server')
+
+
+sio.connect(
+    'https://datathe.com/socket.io/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InR3b19mYWN0b3JfYXV0aGVudGljYXRpb24iOnsiZW5hYmxlZCI6ZmFsc2V9LCJwcm9maWxlSW1hZ2VVUkwiOiIvbW9kdWxlcy91c2Vycy9jbGllbnQvaW1nL3Byb2ZpbGUvZGVmYXVsdC5wbmciLCJyb2xlIjoiYWRtaW4iLCJfaWQiOiI1ZTdkYjhmOTk4ZDIyNTIyN2Q5NjIxYmIiLCJjb25zdW1lciI6eyJsZXZlbCI6MiwidHlwZSI6InJldGFpbGVyIiwiX2lkIjoiNWU3ZGI4MzhjMjY5OGMyNTQzYWNmODE4IiwibmFtZSI6Ikhvw6BuZyBU4buZYyIsImhvc3RuYW1lIjoiZGF0YXRoZS5jb20iLCJpZCI6IjVlN2RiODM4YzI2OThjMjU0M2FjZjgxOCJ9LCJ1c2VybmFtZSI6ImhvYW5ndG9jIiwicHJvdmlkZXIiOiJsb2NhbCIsImNyZWF0ZWRfYnkiOiJ2aWV0dGllbjIwMjAiLCJjcmVhdGVkX2F0IjoiMjAyMC0wMy0yN1QwODoyNzozNy4wNDVaIiwidXBkYXRlZF9hdCI6IjIwMjAtMDMtMjdUMDg6Mjc6MzcuMDQ1WiIsIl9fdiI6MH0sInZlcnNpb24iOiIyMDUuMC4wIiwidXVpZCI6IjFlYTgyZTA3LTkzODEtNDE5Ni1hZWJlLWI1ODAwZTg1OGE4MyIsImNsaWVudF9pbmZvIjp7ImlwIjoiMjQwMjo5ZDgwOjI0OTpjNmFiOmY2YjY6ODJlNjo2ZWFhOjMxMGUiLCJicm93c2VyIjoiTW96aWxsYS81LjAgKFgxMTsgTGludXggeDg2XzY0KSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBDaHJvbWUvODAuMC4zOTg3LjE0OSBTYWZhcmkvNTM3LjM2IiwibGFuZ3VhZ2UiOiJlbi1VUyxlbjtxPTAuOSx2aTtxPTAuOCxqYTtxPTAuNyxueTtxPTAuNiIsImNvdW50cnkiOiJWTiIsInJlZ2lvbiI6IkhOIn0sImlhdCI6MTU4ODI1NjAwMiwiZXhwIjoxNTg4ODYwODAyfQ.p9KCNfk0SxOAQ2uvIiS7wz4_t-pYpXpeclK4gP54OdU&EIO=3',
+    transports='websocket')
